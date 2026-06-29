@@ -6,6 +6,7 @@ export interface PluginSettings {
 	createNote: boolean;
 	noteTemplate: string;
 	impersonateBrowser: boolean;
+	hasCompletedOnboarding: boolean;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -15,6 +16,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	defaultAudioFormat: "m4a",
 	createNote: false,
 	impersonateBrowser: false,
+	hasCompletedOnboarding: false,
 	noteTemplate: `---
 title: "{{title}}"
 channel: "{{channel}}"

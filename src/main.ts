@@ -3,6 +3,7 @@ import { PluginSettings, DEFAULT_SETTINGS } from "./types";
 import { DownloadManager } from "./download-manager";
 import { DownloadView, VIEW_TYPE_DOWNLOADER } from "./download-view";
 import { BestDownloaderSettingTab } from "./settings";
+import { OnboardingModal } from "./onboarding-modal";
 import { applyNoteTemplate, getCurrentDate, formatDuration, sanitizeFilename } from "./utils";
 import * as path from "path";
 
@@ -53,6 +54,13 @@ export default class BestDownloaderPlugin extends Plugin {
 
 		// Add settings tab
 		this.addSettingTab(new BestDownloaderSettingTab(this.app, this));
+
+		// Show onboarding modal on first launch
+		this.app.workspace.onLayoutReady(() => {
+			if (!this.settings.hasCompletedOnboarding) {
+				new OnboardingModal(this.app, this).open();
+			}
+		});
 	}
 
 	onunload() {
