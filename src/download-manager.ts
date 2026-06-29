@@ -7,7 +7,7 @@ import {
 import { parseProgress, sanitizeFilename } from "./utils";
 import * as path from "path";
 import * as fs from "fs";
-import { spawn } from "child_process";
+import { spawn, exec } from "child_process";
 
 interface YtDlpRawInfo {
 	[key: string]: unknown;
@@ -383,7 +383,16 @@ export class DownloadManager extends EventEmitter {
 	 */
 	cancelDownload(): void {
 		if (this.currentProcess) {
-			this.currentProcess.kill("SIGTERM");
+			const pid = this.currentProcess.pid;
+			if (pid) {
+				exec(`taskkill /pid ${pid} /T /F`, (err) => {
+					if (err) {
+						console.error("Не удалось завершить дерево процессов:", err);
+					}
+				});
+			} else {
+				this.currentProcess.kill("SIGKILL");
+			}
 			this._isDownloading = false;
 			this.currentProcess = null;
 			this.emit("cancelled");
