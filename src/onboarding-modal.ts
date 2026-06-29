@@ -137,7 +137,7 @@ export class OnboardingModal extends Modal {
 
 		const prevBtn = this.controlsContainer.createEl("button", { text: "Назад" });
 		if (this.currentSlide === 0) {
-			prevBtn.style.visibility = "hidden"; // Hide "Back" on first slide completely to emphasize "Agree"
+			prevBtn.addClass("bd-hidden"); // Hide "Back" on first slide completely to emphasize "Agree"
 		}
 		prevBtn.addEventListener("click", () => {
 			if (this.currentSlide > 0) {
