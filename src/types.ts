@@ -7,6 +7,7 @@ export interface PluginSettings {
 	noteTemplate: string;
 	impersonateBrowser: boolean;
 	hasCompletedOnboarding: boolean;
+	hasAcceptedDisclaimer: boolean;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -17,6 +18,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	createNote: false,
 	impersonateBrowser: false,
 	hasCompletedOnboarding: false,
+	hasAcceptedDisclaimer: false,
 	noteTemplate: `---
 title: "{{title}}"
 channel: "{{channel}}"

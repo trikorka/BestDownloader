@@ -81,11 +81,33 @@ export class DownloadView extends ItemView {
 		}
 	}
 
+	private renderDisclaimer(container: HTMLElement) {
+		const disclaimerBlock = container.createDiv({ cls: "bd-disclaimer-block" });
+		disclaimerBlock.createEl("h2", { text: "Отказ от ответственности" });
+		disclaimerBlock.createEl("p", { text: "Плагин предназначен исключительно для добросовестного использования. Загрузка материалов, защищенных авторским правом, без разрешения правообладателя может нарушать закон." });
+		disclaimerBlock.createEl("p", { text: "Пользователь несет полную ответственность за любые действия, совершаемые с помощью данного плагина, включая соблюдение условий использования сторонних сервисов." });
+		disclaimerBlock.createEl("p", { text: "Автор плагина не несет ответственности за скачанный контент или блокировки со стороны сервисов." });
+		
+		const agreeBtn = disclaimerBlock.createEl("button", { text: "Я согласен", cls: "mod-warning" });
+		agreeBtn.style.marginTop = "15px";
+		agreeBtn.style.width = "100%";
+		agreeBtn.addEventListener("click", async () => {
+			this.plugin.settings.hasAcceptedDisclaimer = true;
+			await this.plugin.saveSettings();
+			this.renderMainView(container);
+		});
+	}
+
 	/**
 	 * Main View: Header and URL Input always visible
 	 */
 	private renderMainView(container: HTMLElement) {
 		container.empty();
+
+		if (!this.plugin.settings.hasAcceptedDisclaimer) {
+			this.renderDisclaimer(container);
+			return;
+		}
 
 		const header = container.createDiv({ cls: "bd-view-header" });
 		header.createEl("h2", { text: "Скачать видео" });

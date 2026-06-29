@@ -17,6 +17,23 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		if (!this.plugin.settings.hasAcceptedDisclaimer) {
+			const disclaimerBlock = containerEl.createDiv({ cls: "bd-disclaimer-block" });
+			disclaimerBlock.createEl("h2", { text: "Отказ от ответственности" });
+			disclaimerBlock.createEl("p", { text: "Плагин предназначен исключительно для добросовестного использования. Загрузка материалов, защищенных авторским правом, без разрешения правообладателя может нарушать закон." });
+			disclaimerBlock.createEl("p", { text: "Пользователь несет полную ответственность за любые действия, совершаемые с помощью данного плагина, включая соблюдение условий использования сторонних сервисов." });
+			disclaimerBlock.createEl("p", { text: "Автор плагина не несет ответственности за скачанный контент или блокировки со стороны сервисов." });
+			
+			const agreeBtn = disclaimerBlock.createEl("button", { text: "Я согласен", cls: "mod-warning" });
+			agreeBtn.style.marginTop = "15px";
+			agreeBtn.style.width = "100%";
+			agreeBtn.addEventListener("click", async () => {
+				this.plugin.settings.hasAcceptedDisclaimer = true;
+				await this.plugin.saveSettings();
+				this.display(); // Re-render settings
+			});
+			return;
+		}
 
 		new Setting(containerEl)
 			.setName("Основные настройки")

@@ -159,7 +159,11 @@ export class OnboardingModal extends Modal {
 			if (this.currentSlide === 0) {
 				nextBtn.addClass("mod-warning"); // Make it look like a confirmation button
 			}
-			nextBtn.addEventListener("click", () => {
+			nextBtn.addEventListener("click", async () => {
+				if (this.currentSlide === 0 && !this.plugin.settings.hasAcceptedDisclaimer) {
+					this.plugin.settings.hasAcceptedDisclaimer = true;
+					await this.plugin.saveSettings();
+				}
 				this.currentSlide++;
 				this.renderSlide();
 			});
