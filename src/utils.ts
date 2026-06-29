@@ -37,13 +37,13 @@ export function extractVideoId(url: string): string | null {
 export function parseProgress(line: string): DownloadProgress | null {
 	// Try JSON format first (from --progress-template)
 	try {
-		const data = JSON.parse(line.trim());
+		const data = JSON.parse(line.trim()) as Record<string, unknown>;
 		if (data.percent !== undefined) {
 			return {
 				percent: parseFloat(String(data.percent).replace("%", "")) || 0,
-				totalSize: data.total || "N/A",
-				speed: data.speed || "N/A",
-				eta: data.eta || "N/A",
+				totalSize: String(data.total ?? "N/A"),
+				speed: String(data.speed ?? "N/A"),
+				eta: String(data.eta ?? "N/A"),
 				status: "downloading",
 			};
 		}
@@ -146,7 +146,7 @@ export function formatFileSize(bytes: number): string {
  */
 export function sanitizeFilename(name: string): string {
 	return name
-		.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+		.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_")
 		.replace(/\s+/g, " ")
 		.trim()
 		.substring(0, 200);

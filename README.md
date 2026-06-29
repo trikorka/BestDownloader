@@ -19,7 +19,7 @@ An Obsidian plugin to download YouTube videos and audio directly into your vault
 
 ## Installation
 
-### From Obsidian Community Plugins (Coming Soon)
+### From Obsidian Community Plugins
 
 1. Open Obsidian Settings.
 2. Go to **Community plugins** and disable Safe mode.

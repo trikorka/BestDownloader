@@ -92,12 +92,12 @@
 	transition: width 0.3s ease;
 }
 
-.bd-progress-done {
-	background: linear-gradient(90deg, var(--color-green), #2ecc71) !important;
+.bd-progress-bar-inner.bd-progress-done {
+	background: linear-gradient(90deg, var(--color-green), #2ecc71);
 }
 
-.bd-progress-error {
-	background: linear-gradient(90deg, var(--color-red), #e74c3c) !important;
+.bd-progress-bar-inner.bd-progress-error {
+	background: linear-gradient(90deg, var(--color-red), #e74c3c);
 }
 
 .bd-progress-pulse {
@@ -124,8 +124,8 @@
 	cursor: wait;
 }
 
-.bd-btn-done {
-	background: var(--color-green) !important;
+.bd-setup-install-btn.bd-btn-done {
+	background: var(--color-green);
 }
 
 .bd-setup-progress-container {
@@ -497,10 +497,10 @@
 	color: var(--text-normal);
 }
 
-.bd-pill-active {
-	background: var(--interactive-accent) !important;
-	color: var(--text-on-accent) !important;
-	border-color: var(--interactive-accent) !important;
+.bd-pill.bd-pill-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
 }
 
 .bd-pill-sm {
@@ -621,5 +621,33 @@
 .bd-status-icon svg {
 	width: var(--icon-size);
 	height: var(--icon-size);
+}
+
+/* --- Inline style replacements --- */
+.bd-error-loading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--text-muted);
+	background: transparent;
+}
+
+.bd-spin-anim {
+	animation: bd-spin 2s linear infinite;
+}
+
+.bd-icon-success {
+	color: var(--text-success);
+}
+
+.bd-icon-error {
+	color: var(--text-error);
+}
+
+.bd-download-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
 }
 

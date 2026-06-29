@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Notice } from "obsidian";
+import { App, PluginSettingTab, Setting, Notice, FileSystemAdapter } from "obsidian";
 import type BestDownloaderPlugin from "./main";
 import { VideoFormat, VideoQuality, AudioFormat } from "./types";
 import { AutoDownloader } from "./auto-downloader";
@@ -17,21 +17,19 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h1", { text: "Best Downloader" });
-		containerEl.createEl("p", {
-			text: "Настройки плагина для загрузки YouTube видео и аудио.",
-			cls: "setting-item-description",
-		});
+		new Setting(containerEl)
+			.setName("Best Downloader")
+			.setDesc("Настройки плагина для загрузки YouTube видео и аудио.")
+			.setHeading();
 
 		// --- Dependencies ---
-		containerEl.createEl("h3", { text: "Зависимости (Бинарные файлы)" });
+		new Setting(containerEl).setName("Зависимости (Бинарные файлы)").setHeading();
 		
-		const adapter = this.app.vault.adapter as any;
-		const basePath = adapter.getBasePath ? adapter.getBasePath() : (adapter.basePath || ".");
-		const pluginDir = path.join(basePath, ".obsidian", "plugins", this.plugin.manifest.id);
+		const basePath = this.app.vault.adapter instanceof FileSystemAdapter ? this.app.vault.adapter.getBasePath() : ".";
+		const pluginDir = path.join(basePath, this.app.vault.configDir, "plugins", this.plugin.manifest.id);
 		const binDir = path.join(pluginDir, "bin");
 
-		const depDesc = document.createDocumentFragment();
+		const depDesc = activeDocument.createDocumentFragment();
 		depDesc.append(
 			"Для работы плагина требуются ",
 			depDesc.createEl("a", { href: "https://github.com/yt-dlp/yt-dlp/releases/latest", text: "yt-dlp" }),
@@ -96,7 +94,7 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 						new Notice(`Ошибка: ${e instanceof Error ? e.message : String(e)}`, 8000);
 					} finally {
 						btn.setDisabled(false);
-						setTimeout(() => {
+						window.setTimeout(() => {
 							if (btn.buttonEl.innerText.includes("✅") || btn.buttonEl.innerText.includes("❌")) {
 								btn.setButtonText("Скачать автоматически");
 							}
@@ -106,7 +104,7 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 			});
 
 		// --- Download Path ---
-		containerEl.createEl("h3", { text: "Загрузка" });
+		new Setting(containerEl).setName("Загрузка").setHeading();
 
 		new Setting(containerEl)
 			.setName("Папка загрузок")
@@ -125,7 +123,7 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 			);
 
 		// --- Default Formats ---
-		containerEl.createEl("h3", { text: "Форматы по умолчанию" });
+		new Setting(containerEl).setName("Форматы по умолчанию").setHeading();
 
 		new Setting(containerEl)
 			.setName("Формат видео")
@@ -188,7 +186,7 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 			);
 
 		// --- Note Creation ---
-		containerEl.createEl("h3", { text: "Заметки" });
+		new Setting(containerEl).setName("Заметки").setHeading();
 
 		new Setting(containerEl)
 			.setName("Создавать заметку")
@@ -205,7 +203,7 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 			);
 
 		// --- Advanced ---
-		containerEl.createEl("h3", { text: "Дополнительно" });
+		new Setting(containerEl).setName("Дополнительно").setHeading();
 
 		new Setting(containerEl)
 			.setName("Имитация браузера")

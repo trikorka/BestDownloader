@@ -1,11 +1,10 @@
-import { Plugin, Notice } from "obsidian";
+import { Plugin, Notice, FileSystemAdapter } from "obsidian";
 import { PluginSettings, DEFAULT_SETTINGS } from "./types";
 import { DownloadManager } from "./download-manager";
 import { DownloadView, VIEW_TYPE_DOWNLOADER } from "./download-view";
 import { BestDownloaderSettingTab } from "./settings";
 import { applyNoteTemplate, getCurrentDate, formatDuration, sanitizeFilename } from "./utils";
 import * as path from "path";
-import * as fs from "fs";
 
 export default class BestDownloaderPlugin extends Plugin {
 	settings: PluginSettings = DEFAULT_SETTINGS;
@@ -15,22 +14,21 @@ export default class BestDownloaderPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		const adapter = this.app.vault.adapter as any;
-		const basePath = adapter.getBasePath ? adapter.getBasePath() : (adapter.basePath || ".");
-		const pluginDir = path.join(basePath, ".obsidian", "plugins", this.manifest.id);
+		const basePath = this.app.vault.adapter instanceof FileSystemAdapter ? this.app.vault.adapter.getBasePath() : ".";
+		const pluginDir = path.join(basePath, this.app.vault.configDir, "plugins", this.manifest.id);
 
 		this.downloadManager = new DownloadManager(pluginDir, () => this.settings);
 
 		// Listen for completed downloads to create notes
 		this.downloadManager.on("complete", (filename: string) => {
 			if (this.settings.createNote && filename) {
-				this.createVideoNote(filename);
+				void this.createVideoNote(filename);
 			}
 		});
 
 		// Add ribbon icon
 		this.addRibbonIcon("download", "Best Downloader", () => {
-			this.activateView();
+			void this.activateView();
 		});
 
 		// Add command
@@ -38,7 +36,7 @@ export default class BestDownloaderPlugin extends Plugin {
 			id: "download-youtube",
 			name: "Открыть панель скачивания",
 			callback: () => {
-				this.activateView();
+				void this.activateView();
 			},
 		});
 
@@ -49,9 +47,7 @@ export default class BestDownloaderPlugin extends Plugin {
 				leaf,
 				this.downloadManager,
 				this,
-				(this.app.vault.adapter as any).getBasePath
-					? (this.app.vault.adapter as any).getBasePath()
-					: (this.app.vault.adapter as any).basePath || "."
+				this.app.vault.adapter instanceof FileSystemAdapter ? this.app.vault.adapter.getBasePath() : "."
 			)
 		);
 
@@ -67,10 +63,11 @@ export default class BestDownloaderPlugin extends Plugin {
 	}
 
 	async loadSettings() {
+		const data = (await this.loadData()) as Partial<PluginSettings> | null;
 		this.settings = Object.assign(
 			{},
 			DEFAULT_SETTINGS,
-			await this.loadData()
+			data ?? {}
 		);
 	}
 
@@ -98,7 +95,7 @@ export default class BestDownloaderPlugin extends Plugin {
 		}
 
 		if (leaf) {
-			workspace.revealLeaf(leaf);
+			await workspace.revealLeaf(leaf);
 		}
 	}
 
@@ -109,9 +106,9 @@ export default class BestDownloaderPlugin extends Plugin {
 		try {
 			if (!this.downloadManager.lastVideoInfo) return;
 
-			const info = this.downloadManager.lastVideoInfo;
+			const info: import("./types").VideoInfo = this.downloadManager.lastVideoInfo;
 			
-			const title = info.title;
+			const title: string = info.title;
 			const safeTitle = sanitizeFilename(title);
 			
 			// Resolve download path
@@ -129,11 +126,11 @@ export default class BestDownloaderPlugin extends Plugin {
 				count++;
 			}
 			
-			const templateData = {
+			const templateData: Record<string, string> = {
 				title: title,
 				channel: info.channel || "Unknown",
 				duration: info.duration ? formatDuration(info.duration) : "Unknown",
-				url: info.originalUrl,
+				url: info.webpage_url ?? "",
 				date: getCurrentDate()
 			};
 			

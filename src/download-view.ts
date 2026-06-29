@@ -1,8 +1,7 @@
-import { ItemView, WorkspaceLeaf, Notice, App, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, setIcon } from "obsidian";
 import type BestDownloaderPlugin from "./main";
 import { DownloadManager } from "./download-manager";
 import {
-	PluginSettings,
 	VideoInfo,
 	DownloadOptions,
 	DownloadProgress,
@@ -14,7 +13,6 @@ import {
 import {
 	isValidYouTubeUrl,
 	formatDuration,
-	formatFileSize,
 } from "./utils";
 import * as path from "path";
 
@@ -112,52 +110,49 @@ export class DownloadView extends ItemView {
 		});
 
 		this.errorMsg = container.createDiv({ cls: "bd-error-msg" });
-		this.errorMsg.style.display = "none";
+		this.errorMsg.hide();
 
-		this.contentContainer = container.createDiv({ cls: "bd-content-container flex-col" });
+		this.contentContainer = container.createDiv({ cls: "bd-content-container bd-flex-col" });
 
 		const triggerFetch = async () => {
 			const url = this.urlInput.value.trim();
 
 			if (!url) {
-				this.errorMsg.style.display = "block";
+				this.errorMsg.show();
 				this.errorMsg.setText("Введите ссылку");
 				return;
 			}
 
 			if (!isValidYouTubeUrl(url)) {
-				this.errorMsg.style.display = "block";
+				this.errorMsg.show();
 				this.errorMsg.setText("Некорректная ссылка");
 				return;
 			}
 
-			this.errorMsg.style.display = "none";
+			this.errorMsg.hide();
 			this.urlInput.disabled = true;
 			this.urlInput.placeholder = "Получение информации...";
 			this.plugin.lastProcessedUrl = url;
 			
 			// Show spinner in errorMsg container temporarily as a loading state
 			this.errorMsg.empty();
-			this.errorMsg.style.display = "flex";
-			this.errorMsg.style.alignItems = "center";
-			this.errorMsg.style.gap = "8px";
-			this.errorMsg.style.color = "var(--text-muted)";
-			this.errorMsg.style.background = "transparent";
+			this.errorMsg.show();
+			this.errorMsg.addClass("bd-error-loading");
 			const loaderIcon = this.errorMsg.createSpan();
 			setIcon(loaderIcon, "loader");
-			(loaderIcon.firstChild as HTMLElement).style.animation = "bd-spin 2s linear infinite";
+			(loaderIcon.firstChild as HTMLElement)?.addClass("bd-spin-anim");
 			this.errorMsg.createSpan({ text: "Загрузка информации о видео..." });
 
 			try {
 				this.videoInfo = await this.downloadManager.getVideoInfo(url);
-				this.errorMsg.style.display = "none"; // Hide loading spinner
+				this.errorMsg.hide(); // Hide loading spinner
+				this.errorMsg.removeClass("bd-error-loading");
 				this.urlInput.disabled = false;
 				this.urlInput.placeholder = "Ссылка на YouTube...";
 				this.renderVideoInfo();
 			} catch (e) {
-				this.errorMsg.style.display = "block";
-				this.errorMsg.style.color = "";
-				this.errorMsg.style.background = "";
+				this.errorMsg.show();
+				this.errorMsg.removeClass("bd-error-loading");
 				
 				// Format error as Callout
 				this.errorMsg.empty();
@@ -183,7 +178,7 @@ export class DownloadView extends ItemView {
 				const url = this.urlInput.value.trim();
 				if (isValidYouTubeUrl(url)) {
 					this.selectedPlaylistIndices.clear();
-					triggerFetch();
+					void triggerFetch();
 				}
 			}
 		});
@@ -192,7 +187,7 @@ export class DownloadView extends ItemView {
 			const url = this.urlInput.value.trim();
 			if (isValidYouTubeUrl(url) && !this.urlInput.disabled) {
 				this.selectedPlaylistIndices.clear();
-				triggerFetch();
+				void triggerFetch();
 			}
 		});
 	}
@@ -248,7 +243,7 @@ export class DownloadView extends ItemView {
 					} else {
 						this.selectedPlaylistIndices.delete(itemIndex);
 					}
-					document.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
+					activeDocument.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
 					updateToggleIcon();
 				});
 				
@@ -289,7 +284,7 @@ export class DownloadView extends ItemView {
 					}
 				});
 				updateToggleIcon();
-				document.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
+				activeDocument.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
 			});
 		} else {
 			// Regular Video card
@@ -401,16 +396,9 @@ export class DownloadView extends ItemView {
 		const downloadBtn = btnRow.createEl("button", {
 			cls: "bd-download-btn mod-cta",
 		});
-		downloadBtn.style.display = "flex";
-		downloadBtn.style.alignItems = "center";
-		downloadBtn.style.justifyContent = "center";
-		downloadBtn.style.gap = "8px";
 		const dlIcon = downloadBtn.createSpan();
 		setIcon(dlIcon, "download");
 		const dlText = downloadBtn.createSpan({ text: "Скачать" });
-		
-		// Full width in sidebar
-		downloadBtn.style.width = "100%";
 
 		const updateDownloadBtn = () => {
 			if (info.isPlaylist && info.entries) {
@@ -434,11 +422,11 @@ export class DownloadView extends ItemView {
 		updateDownloadBtn();
 
 		const onSelectionChanged = () => updateDownloadBtn();
-		document.addEventListener("bd-playlist-selection-changed", onSelectionChanged);
+		activeDocument.addEventListener("bd-playlist-selection-changed", onSelectionChanged);
 
 		downloadBtn.addEventListener("click", () => {
-			document.removeEventListener("bd-playlist-selection-changed", onSelectionChanged);
-			this.startDownload();
+			activeDocument.removeEventListener("bd-playlist-selection-changed", onSelectionChanged);
+			void this.startDownload();
 		});
 	}
 
@@ -503,7 +491,7 @@ export class DownloadView extends ItemView {
 			text: "Отменить",
 			cls: "bd-cancel-btn",
 		});
-		cancelBtn.style.width = "100%";
+
 
 		// Listen for progress
 		const onProgress = (progress: DownloadProgress) => {
@@ -527,21 +515,21 @@ export class DownloadView extends ItemView {
 				case "merging":
 					statusIcon.empty();
 					setIcon(statusIcon, "loader");
-					(statusIcon.firstChild as HTMLElement).style.animation = "bd-spin 2s linear infinite";
+					(statusIcon.firstChild as HTMLElement)?.addClass("bd-spin-anim");
 					statusMsg.setText("Объединение видео и аудио...");
 					progressBar.removeAttribute("value"); // indeterminate state
 					break;
 				case "converting":
 					statusIcon.empty();
 					setIcon(statusIcon, "loader");
-					(statusIcon.firstChild as HTMLElement).style.animation = "bd-spin 2s linear infinite";
+					(statusIcon.firstChild as HTMLElement)?.addClass("bd-spin-anim");
 					statusMsg.setText("Конвертация...");
 					progressBar.removeAttribute("value"); // indeterminate state
 					break;
 				case "finished":
 					statusIcon.empty();
 					setIcon(statusIcon, "check-circle");
-					(statusIcon.firstChild as HTMLElement).style.color = "var(--text-success)";
+					(statusIcon.firstChild as HTMLElement)?.addClass("bd-icon-success");
 					statusMsg.setText("Успешно!");
 					progressBar.setAttr("value", "100");
 					cancelBtn.setText("Скачать другое");
@@ -550,7 +538,7 @@ export class DownloadView extends ItemView {
 				case "error": {
 					statusIcon.empty();
 					setIcon(statusIcon, "alert-circle");
-					(statusIcon.firstChild as HTMLElement).style.color = "var(--text-error)";
+					(statusIcon.firstChild as HTMLElement)?.addClass("bd-icon-error");
 					statusMsg.setText("Ошибка");
 					progressBar.addClass("bd-progress-error");
 					cancelBtn.setText("Назад");

@@ -70,14 +70,16 @@ export class AutoDownloader {
 	private static async extractFfmpeg(zipPath: string, destDir: string): Promise<void> {
 		return new Promise((resolve, reject) => {
 			try {
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 				const zip = new AdmZip(zipPath);
-				const zipEntries = zip.getEntries();
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+				const zipEntries: Array<{ entryName: string; getData: () => Buffer }> = zip.getEntries();
 				let found = false;
 
 				for (const entry of zipEntries) {
 					// We only want ffmpeg.exe from the bin directory
 					if (entry.entryName.endsWith("bin/ffmpeg.exe")) {
-						const content = entry.getData();
+						const content: Buffer = entry.getData();
 						fs.writeFileSync(path.join(destDir, "ffmpeg.exe"), content);
 						found = true;
 						break;
@@ -90,7 +92,7 @@ export class AutoDownloader {
 					resolve();
 				}
 			} catch (e) {
-				reject(e);
+				reject(e instanceof Error ? e : new Error(String(e)));
 			}
 		});
 	}

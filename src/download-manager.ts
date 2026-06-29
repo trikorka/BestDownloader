@@ -7,12 +7,45 @@ import {
 import { parseProgress, sanitizeFilename } from "./utils";
 import * as path from "path";
 import * as fs from "fs";
+import { spawn } from "child_process";
+
+interface YtDlpRawInfo {
+	[key: string]: unknown;
+	id?: string;
+	title?: string;
+	description?: string;
+	thumbnail?: string;
+	thumbnails?: Array<{ url: string }>;
+	duration?: number;
+	channel?: string;
+	uploader?: string;
+	upload_date?: string;
+	view_count?: number;
+	like_count?: number;
+	formats?: Array<Record<string, unknown>>;
+	webpage_url?: string;
+	filesize_approx?: number;
+	_type?: string;
+	entries?: YtDlpRawEntry[];
+}
+
+interface YtDlpRawEntry {
+	[key: string]: unknown;
+	id?: string;
+	title?: string;
+	thumbnail?: string;
+	thumbnails?: Array<{ url: string }>;
+	duration?: number;
+	channel?: string;
+	uploader?: string;
+}
 
 export class DownloadManager extends EventEmitter {
 	private pluginDir: string;
 	private settingsGetter: () => import("./types").PluginSettings;
-	private currentProcess: ReturnType<typeof import("child_process").spawn> | null = null;
+	private currentProcess: ReturnType<typeof spawn> | null = null;
 	private _isDownloading = false;
+	lastVideoInfo: import("./types").VideoInfo | null = null;
 
 	constructor(pluginDir: string, settingsGetter: () => import("./types").PluginSettings) {
 		super();
@@ -29,7 +62,7 @@ export class DownloadManager extends EventEmitter {
 	 */
 	async getVideoInfo(url: string): Promise<VideoInfo> {
 		return new Promise((resolve, reject) => {
-			const { spawn } = require("child_process") as typeof import("child_process");
+
 			const settings = this.settingsGetter();
 			const isWin = process.platform === "win32";
 			const ytDlpPath = path.join(this.pluginDir, "bin", isWin ? "yt-dlp.exe" : "yt-dlp");
@@ -74,7 +107,7 @@ export class DownloadManager extends EventEmitter {
 				}
 
 				try {
-					const info = JSON.parse(stdout.trim());
+					const info = JSON.parse(stdout.trim()) as YtDlpRawInfo;
 					const isPlaylist = info._type === "playlist" || Array.isArray(info.entries);
 					const videoInfo: VideoInfo = {
 						id: info.id || "",
@@ -111,7 +144,7 @@ export class DownloadManager extends EventEmitter {
 						filesize_approx: info.filesize_approx || undefined,
 						isPlaylist: isPlaylist,
 						playlistCount: isPlaylist && info.entries ? info.entries.length : undefined,
-						entries: isPlaylist && info.entries ? info.entries.map((e: any) => ({
+						entries: isPlaylist && info.entries ? info.entries.map((e: YtDlpRawEntry) => ({
 							id: e.id || "",
 							title: e.title || "Unknown",
 							thumbnail: e.thumbnail || (e.thumbnails && e.thumbnails.length > 0 ? e.thumbnails[e.thumbnails.length - 1].url : ""),
@@ -119,6 +152,7 @@ export class DownloadManager extends EventEmitter {
 							channel: e.uploader || e.channel || info.uploader || info.channel || "Unknown"
 						})) : undefined,
 					};
+					this.lastVideoInfo = videoInfo;
 					resolve(videoInfo);
 				} catch (e) {
 					reject(
@@ -154,7 +188,7 @@ export class DownloadManager extends EventEmitter {
 			this._isDownloading = true;
 			this.emit("status", "Инициализация...");
 
-			const { spawn } = require("child_process") as typeof import("child_process");
+
 			const settings = this.settingsGetter();
 			
 			const isWin = process.platform === "win32";
