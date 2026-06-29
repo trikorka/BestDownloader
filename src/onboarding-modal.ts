@@ -34,34 +34,34 @@ export class OnboardingModal extends Modal {
 	buildSlides() {
 		this.slides = [];
 
-		// Slide 1: Welcome
+		// Slide 1: Disclaimer
 		const slide1 = createDiv({ cls: "bd-slide" });
-		slide1.createEl("h2", { text: "Скачивайте видео и аудио прямо в Obsidian" });
-		slide1.createEl("p", { text: "Best Downloader позволяет вам загружать видеоролики и аудиофайлы с сотен поддерживаемых сайтов прямо в ваше локальное хранилище Obsidian. Вы можете сохранять лекции, музыку и подкасты для офлайн-доступа." });
+		slide1.createEl("h2", { text: "Отказ от ответственности" });
+		slide1.createEl("p", { text: "Плагин предназначен исключительно для добросовестного использования. Загрузка материалов, защищенных авторским правом, без разрешения правообладателя может нарушать закон." });
+		slide1.createEl("p", { text: "Пользователь несет полную ответственность за любые действия, совершаемые с помощью данного плагина, включая соблюдение условий использования сторонних сервисов." });
+		slide1.createEl("p", { text: "Автор плагина не несет ответственности за скачанный контент или блокировки со стороны сервисов." });
+		this.slides.push(slide1);
+
+		// Slide 2: Welcome
+		const slide2 = createDiv({ cls: "bd-slide" });
+		slide2.createEl("h2", { text: "Скачивайте видео и аудио прямо в Obsidian" });
+		slide2.createEl("p", { text: "Best Downloader позволяет вам загружать видеоролики и аудиофайлы с сотен поддерживаемых сайтов прямо в ваше локальное хранилище Obsidian. Вы можете сохранять лекции, музыку и подкасты для офлайн-доступа." });
 		
-		const featuresList = slide1.createEl("ul");
+		const featuresList = slide2.createEl("ul");
 		featuresList.createEl("li", { text: "Скачивание в высоком качестве (до 4K)" });
 		featuresList.createEl("li", { text: "Автоматическое извлечение аудио (M4A, MP3, Opus)" });
 		featuresList.createEl("li", { text: "Автоматическое создание заметок к скачанным видео" });
-		this.slides.push(slide1);
+		this.slides.push(slide2);
 
-		// Slide 2: How to use
-		const slide2 = createDiv({ cls: "bd-slide" });
-		slide2.createEl("h2", { text: "Как использовать" });
-		slide2.createEl("p", { text: "Использовать плагин очень просто:" });
-		const stepsList = slide2.createEl("ol");
+		// Slide 3: How to use
+		const slide3 = createDiv({ cls: "bd-slide" });
+		slide3.createEl("h2", { text: "Как использовать" });
+		slide3.createEl("p", { text: "Использовать плагин очень просто:" });
+		const stepsList = slide3.createEl("ol");
 		stepsList.createEl("li", { text: "Откройте боковую панель Best Downloader (иконка скачивания на панели слева или через палитру команд)." });
 		stepsList.createEl("li", { text: "Вставьте ссылку на видео или плейлист." });
 		stepsList.createEl("li", { text: "Выберите нужный формат и качество." });
 		stepsList.createEl("li", { text: "Нажмите 'Скачать' и дождитесь завершения!" });
-		this.slides.push(slide2);
-
-		// Slide 3: Disclaimer
-		const slide3 = createDiv({ cls: "bd-slide" });
-		slide3.createEl("h2", { text: "Отказ от ответственности" });
-		slide3.createEl("p", { text: "Плагин предназначен исключительно для добросовестного использования. Загрузка материалов, защищенных авторским правом, без разрешения правообладателя может нарушать закон." });
-		slide3.createEl("p", { text: "Пользователь несет полную ответственность за любые действия, совершаемые с помощью данного плагина, включая соблюдение условий использования сторонних сервисов." });
-		slide3.createEl("p", { text: "Автор плагина не несет ответственности за скачанный контент или блокировки со стороны сервисов." });
 		this.slides.push(slide3);
 
 		// Slide 4: Dependencies (Manual)
@@ -136,7 +136,9 @@ export class OnboardingModal extends Modal {
 		this.controlsContainer.empty();
 
 		const prevBtn = this.controlsContainer.createEl("button", { text: "Назад" });
-		prevBtn.disabled = this.currentSlide === 0;
+		if (this.currentSlide === 0) {
+			prevBtn.style.visibility = "hidden"; // Hide "Back" on first slide completely to emphasize "Agree"
+		}
 		prevBtn.addEventListener("click", () => {
 			if (this.currentSlide > 0) {
 				this.currentSlide--;
@@ -152,7 +154,11 @@ export class OnboardingModal extends Modal {
 		}
 
 		if (this.currentSlide < this.slides.length - 1) {
-			const nextBtn = this.controlsContainer.createEl("button", { text: "Далее", cls: "mod-cta" });
+			const nextText = this.currentSlide === 0 ? "Я согласен" : "Далее";
+			const nextBtn = this.controlsContainer.createEl("button", { text: nextText, cls: "mod-cta" });
+			if (this.currentSlide === 0) {
+				nextBtn.addClass("mod-warning"); // Make it look like a confirmation button
+			}
 			nextBtn.addEventListener("click", () => {
 				this.currentSlide++;
 				this.renderSlide();
