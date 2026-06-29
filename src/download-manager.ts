@@ -236,9 +236,16 @@ export class DownloadManager extends EventEmitter {
 
 			if (options.type === "audio") {
 				// Audio-only download
-				args.push("-f", "bestaudio/best"); // Download ONLY audio stream, do not download video
+				let preferExt = "";
+				if (options.audioFormat === "m4a") preferExt = "[ext=m4a]";
+				else if (options.audioFormat === "opus") preferExt = "[ext=webm]";
+
+				args.push("-f", `bestaudio${preferExt}/bestaudio/best`); // Prefer requested native format
 				args.push("-x");
-				args.push("--audio-format", options.audioFormat);
+				
+				// yt-dlp expects 'vorbis' instead of 'ogg'
+				const ytDlpAudioFormat = options.audioFormat === "ogg" ? "vorbis" : options.audioFormat;
+				args.push("--audio-format", ytDlpAudioFormat);
 				args.push("--audio-quality", "0"); // Best quality
 			} else {
 				// Video download
