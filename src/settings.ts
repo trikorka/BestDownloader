@@ -19,7 +19,7 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Основные настройки")
-			.setDesc("Настройки плагина для загрузки YouTube видео и аудио.")
+			.setDesc("Настройки плагина для загрузки видео и аудио.")
 			.setHeading();
 
 		// --- Dependencies ---

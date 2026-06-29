@@ -1,12 +1,12 @@
 # Best Downloader
 
-An Obsidian plugin to download YouTube videos and audio directly into your vault, powered by `yt-dlp`.
+An Obsidian plugin to download videos and audio directly into your vault, powered by `yt-dlp`.
 
 **Note:** This plugin works only on the Obsidian desktop app (Windows, macOS, Linux).
 
 ## Features
 
-- Download videos from YouTube (and other sites supported by `yt-dlp`).
+- Download videos from hundreds of sites supported by `yt-dlp`.
 - Download audio-only (MP3/M4A) or video+audio (MP4/WebM).
 - Automatically saves downloaded files directly into your Obsidian vault.
 - Customizable download paths.

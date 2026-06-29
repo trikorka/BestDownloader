@@ -1,4 +1,4 @@
-import { App, Modal, Notice, setIcon } from "obsidian";
+import { App, Modal, Notice, setIcon, FileSystemAdapter } from "obsidian";
 import BestDownloaderPlugin from "./main";
 import { AutoDownloader } from "./auto-downloader";
 import * as fs from "fs";
@@ -36,7 +36,7 @@ export class OnboardingModal extends Modal {
 		// Slide 1: Welcome
 		const slide1 = createDiv({ cls: "bd-slide" });
 		slide1.createEl("h2", { text: "Скачивайте видео и аудио прямо в Obsidian" });
-		slide1.createEl("p", { text: "Best Downloader позволяет вам загружать видеоролики и аудиофайлы с YouTube и сотен других сайтов прямо в ваше локальное хранилище Obsidian. Вы можете сохранять лекции, музыку и подкасты для офлайн-доступа." });
+		slide1.createEl("p", { text: "Best Downloader позволяет вам загружать видеоролики и аудиофайлы с сотен поддерживаемых сайтов прямо в ваше локальное хранилище Obsidian. Вы можете сохранять лекции, музыку и подкасты для офлайн-доступа." });
 		
 		const featuresList = slide1.createEl("ul");
 		featuresList.createEl("li", { text: "Скачивание в высоком качестве (до 4K)" });
@@ -72,7 +72,7 @@ export class OnboardingModal extends Modal {
 		
 		const autoDownloadBtnContainer = slide4.createDiv({ cls: "bd-auto-download-container" });
 		const autoBtn = autoDownloadBtnContainer.createEl("button", { 
-			text: "Скачать зависимости автоматически",
+			text: "Скачать",
 			cls: "mod-cta bd-auto-btn"
 		});
 
@@ -80,7 +80,7 @@ export class OnboardingModal extends Modal {
 			new Notice("Загрузка исполняемых файлов со сторонних серверов (GitHub)...", 4000);
 			autoBtn.disabled = true;
 			
-			const basePath = this.app.vault.adapter.hasOwnProperty('getBasePath') ? (this.app.vault.adapter as any).getBasePath() : ".";
+			const basePath = this.app.vault.adapter instanceof FileSystemAdapter ? this.app.vault.adapter.getBasePath() : ".";
 			const pluginDir = path.join(basePath, this.app.vault.configDir, "plugins", this.plugin.manifest.id);
 			const binDir = path.join(pluginDir, "bin");
 

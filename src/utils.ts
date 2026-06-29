@@ -1,18 +1,15 @@
 import { DownloadProgress } from "./types";
 
 /**
- * Validates if a given string is a valid YouTube URL
+ * Validates if a given string is a valid HTTP/HTTPS URL
  */
-export function isValidYouTubeUrl(url: string): boolean {
-	const patterns = [
-		/^(https?:\/\/)?(www\.)?youtube\.com\/watch\?v=[\w-]{11}/,
-		/^(https?:\/\/)?(www\.)?youtube\.com\/shorts\/[\w-]{11}/,
-		/^(https?:\/\/)?youtu\.be\/[\w-]{11}/,
-		/^(https?:\/\/)?(www\.)?youtube\.com\/embed\/[\w-]{11}/,
-		/^(https?:\/\/)?(www\.)?youtube\.com\/v\/[\w-]{11}/,
-		/^(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=[\w-]+/,
-	];
-	return patterns.some((p) => p.test(url.trim()));
+export function isValidUrl(url: string): boolean {
+	try {
+		new URL(url);
+		return url.startsWith("http://") || url.startsWith("https://");
+	} catch {
+		return false;
+	}
 }
 
 /**

@@ -11,7 +11,7 @@ import {
 	AudioFormat,
 } from "./types";
 import {
-	isValidYouTubeUrl,
+	isValidUrl,
 	formatDuration,
 } from "./utils";
 import * as path from "path";
@@ -58,7 +58,7 @@ export class DownloadView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "YouTube Downloader";
+		return "Media Downloader";
 	}
 
 	getIcon(): string {
@@ -107,7 +107,7 @@ export class DownloadView extends ItemView {
 		const inputGroup = container.createDiv({ cls: "bd-input-group" });
 		this.urlInput = inputGroup.createEl("input", {
 			type: "text",
-			placeholder: "Ссылка на YouTube...",
+			placeholder: "Ссылка на видео/аудио...",
 			cls: "bd-url-input",
 		});
 
@@ -125,7 +125,7 @@ export class DownloadView extends ItemView {
 				return;
 			}
 
-			if (!isValidYouTubeUrl(url)) {
+			if (!isValidUrl(url)) {
 				this.errorMsg.show();
 				this.errorMsg.setText("Некорректная ссылка");
 				return;
@@ -150,7 +150,7 @@ export class DownloadView extends ItemView {
 				this.errorMsg.hide(); // Hide loading spinner
 				this.errorMsg.removeClass("bd-error-loading");
 				this.urlInput.disabled = false;
-				this.urlInput.placeholder = "Ссылка на YouTube...";
+				this.urlInput.placeholder = "Ссылка на видео/аудио...";
 				this.renderVideoInfo();
 			} catch (e) {
 				this.errorMsg.show();
@@ -167,7 +167,7 @@ export class DownloadView extends ItemView {
 				calloutContent.setText(`${e instanceof Error ? e.message : String(e)}`);
 				
 				this.urlInput.disabled = false;
-				this.urlInput.placeholder = "Ссылка на YouTube...";
+				this.urlInput.placeholder = "Ссылка на видео/аудио...";
 				this.urlInput.focus();
 			}
 		};
@@ -178,7 +178,7 @@ export class DownloadView extends ItemView {
 		this.urlInput.addEventListener("keydown", (e: KeyboardEvent) => {
 			if (e.key === "Enter" && !this.urlInput.disabled) {
 				const url = this.urlInput.value.trim();
-				if (isValidYouTubeUrl(url)) {
+				if (isValidUrl(url)) {
 					this.selectedPlaylistIndices.clear();
 					void triggerFetch();
 				}
@@ -187,7 +187,7 @@ export class DownloadView extends ItemView {
 
 		this.urlInput.addEventListener("input", () => {
 			const url = this.urlInput.value.trim();
-			if (isValidYouTubeUrl(url) && !this.urlInput.disabled) {
+			if (isValidUrl(url) && !this.urlInput.disabled) {
 				this.selectedPlaylistIndices.clear();
 				void triggerFetch();
 			}
@@ -563,7 +563,7 @@ export class DownloadView extends ItemView {
 				this.contentContainer.empty();
 				this.urlInput.value = "";
 				this.urlInput.disabled = false;
-				this.urlInput.placeholder = "Ссылка на YouTube...";
+				this.urlInput.placeholder = "Ссылка на видео/аудио...";
 				this.urlInput.focus();
 			}
 		});

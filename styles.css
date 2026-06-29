@@ -695,17 +695,27 @@
 }
 
 .bd-onboarding-controls {
-	display: flex;
-	justify-content: space-between;
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
 	align-items: center;
 	margin-top: 20px;
 	padding-top: 20px;
 	border-top: 1px solid var(--background-modifier-border);
+	width: 100%;
+}
+
+.bd-onboarding-controls > :first-child {
+	justify-self: start;
+}
+
+.bd-onboarding-controls > :last-child {
+	justify-self: end;
 }
 
 .bd-slider-dots {
 	display: flex;
 	gap: 8px;
+	justify-self: center;
 }
 
 .bd-dot {
