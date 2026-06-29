@@ -1,6 +1,7 @@
 import { App, Modal, Notice, setIcon, FileSystemAdapter } from "obsidian";
 import BestDownloaderPlugin from "./main";
 import { AutoDownloader } from "./auto-downloader";
+import { ConfirmModal } from "./confirm-modal";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -55,63 +56,77 @@ export class OnboardingModal extends Modal {
 		stepsList.createEl("li", { text: "Нажмите 'Скачать' и дождитесь завершения!" });
 		this.slides.push(slide2);
 
-		// Slide 3: Dependencies (Manual)
+		// Slide 3: Disclaimer
 		const slide3 = createDiv({ cls: "bd-slide" });
-		slide3.createEl("h2", { text: "Требования к системе" });
-		slide3.createEl("p", { text: "Под капотом плагин использует мощные утилиты yt-dlp и ffmpeg. Без них скачивание работать не будет." });
-		slide3.createEl("p", { text: "Вы можете установить их самостоятельно:" });
-		const manualList = slide3.createEl("ul");
-		manualList.createEl("li", { text: "Скачайте yt-dlp.exe и ffmpeg.exe с их официальных сайтов (GitHub)." });
-		manualList.createEl("li", { text: "Поместите эти файлы в папку .obsidian/plugins/best-downloader/bin/ внутри вашего хранилища." });
+		slide3.createEl("h2", { text: "Отказ от ответственности" });
+		slide3.createEl("p", { text: "Плагин предназначен исключительно для добросовестного использования. Загрузка материалов, защищенных авторским правом, без разрешения правообладателя может нарушать закон." });
+		slide3.createEl("p", { text: "Пользователь несет полную ответственность за любые действия, совершаемые с помощью данного плагина, включая соблюдение условий использования сторонних сервисов." });
+		slide3.createEl("p", { text: "Автор плагина не несет ответственности за скачанный контент или блокировки со стороны сервисов." });
 		this.slides.push(slide3);
 
-		// Slide 4: Auto-download
+		// Slide 4: Dependencies (Manual)
 		const slide4 = createDiv({ cls: "bd-slide" });
-		slide4.createEl("h2", { text: "Автоматическая загрузка" });
-		slide4.createEl("p", { text: "Или плагин может скачать всё сам прямо сейчас! (Около 150 МБ)." });
+		slide4.createEl("h2", { text: "Требования к системе" });
+		slide4.createEl("p", { text: "Под капотом плагин использует мощные утилиты yt-dlp и ffmpeg. Без них скачивание работать не будет." });
+		slide4.createEl("p", { text: "Вы можете установить их самостоятельно:" });
+		const manualList = slide4.createEl("ul");
+		manualList.createEl("li", { text: "Скачайте yt-dlp.exe и ffmpeg.exe с их официальных сайтов (GitHub)." });
+		manualList.createEl("li", { text: "Поместите эти файлы в папку .obsidian/plugins/best-downloader/bin/ внутри вашего хранилища." });
+		this.slides.push(slide4);
+
+		// Slide 5: Auto-download
+		const slide5 = createDiv({ cls: "bd-slide" });
+		slide5.createEl("h2", { text: "Автоматическая загрузка" });
+		slide5.createEl("p", { text: "Или плагин может скачать всё сам прямо сейчас! (Около 150 МБ)." });
 		
-		const autoDownloadBtnContainer = slide4.createDiv({ cls: "bd-auto-download-container" });
+		const autoDownloadBtnContainer = slide5.createDiv({ cls: "bd-auto-download-container" });
 		const autoBtn = autoDownloadBtnContainer.createEl("button", { 
 			text: "Скачать",
 			cls: "mod-cta bd-auto-btn"
 		});
 
 		autoBtn.addEventListener("click", () => {
-			new Notice("Загрузка исполняемых файлов со сторонних серверов (GitHub)...", 4000);
-			autoBtn.disabled = true;
-			
-			const basePath = this.app.vault.adapter instanceof FileSystemAdapter ? this.app.vault.adapter.getBasePath() : ".";
-			const pluginDir = path.join(basePath, this.app.vault.configDir, "plugins", this.plugin.manifest.id);
-			const binDir = path.join(pluginDir, "bin");
-
-			if (!fs.existsSync(binDir)) {
-				fs.mkdirSync(binDir, { recursive: true });
-			}
-
-			// Run asynchronously without blocking UI
-			(async () => {
-				try {
-					await AutoDownloader.downloadYtDlp(binDir, (msg) => {
-						autoBtn.innerText = msg;
-					});
-					await AutoDownloader.downloadFfmpeg(binDir, (msg) => {
-						autoBtn.innerText = msg;
-					});
+			new ConfirmModal(
+				this.app,
+				"Предупреждение о безопасности",
+				"Вы собираетесь скачать исполняемые файлы (yt-dlp и ffmpeg) со сторонних серверов (GitHub).\n\nЗагрузка и запуск бинарных файлов из интернета всегда несет определенные риски безопасности. Автор плагина не несет ответственности за любой возможный ущерб.\n\nВы делаете это на свой страх и риск. Продолжить?",
+				() => {
+					autoBtn.disabled = true;
 					
-					autoBtn.innerText = "Установлено ✅";
-					autoBtn.addClass("bd-success-btn");
-					new Notice("Зависимости успешно скачаны!");
-				} catch (e) {
-					console.error("Download error:", e);
-					autoBtn.innerText = "Ошибка скачивания ❌";
-					new Notice(`Ошибка: ${e instanceof Error ? e.message : String(e)}`, 8000);
-					autoBtn.disabled = false;
+					const basePath = this.app.vault.adapter instanceof FileSystemAdapter ? this.app.vault.adapter.getBasePath() : ".";
+					const pluginDir = path.join(basePath, this.app.vault.configDir, "plugins", this.plugin.manifest.id);
+					const binDir = path.join(pluginDir, "bin");
+
+					if (!fs.existsSync(binDir)) {
+						fs.mkdirSync(binDir, { recursive: true });
+					}
+
+					// Run asynchronously without blocking UI
+					(async () => {
+						try {
+							await AutoDownloader.downloadYtDlp(binDir, (msg) => {
+								autoBtn.innerText = msg;
+							});
+							await AutoDownloader.downloadFfmpeg(binDir, (msg) => {
+								autoBtn.innerText = msg;
+							});
+							
+							autoBtn.innerText = "Установлено ✅";
+							autoBtn.addClass("bd-success-btn");
+							new Notice("Зависимости успешно скачаны!");
+						} catch (e) {
+							console.error("Download error:", e);
+							autoBtn.innerText = "Ошибка скачивания ❌";
+							new Notice(`Ошибка: ${e instanceof Error ? e.message : String(e)}`, 8000);
+							autoBtn.disabled = false;
+						}
+					})();
 				}
-			})();
+			).open();
 		});
 
-		slide4.createEl("p", { text: "Вы всегда сможете скачать их позже в настройках плагина.", cls: "bd-muted-text" });
-		this.slides.push(slide4);
+		slide5.createEl("p", { text: "Вы всегда сможете скачать их позже в настройках плагина.", cls: "bd-muted-text" });
+		this.slides.push(slide5);
 	}
 
 	renderSlide() {

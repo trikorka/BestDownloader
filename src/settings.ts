@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting, Notice, FileSystemAdapter } from "obsid
 import type BestDownloaderPlugin from "./main";
 import { VideoFormat, VideoQuality, AudioFormat } from "./types";
 import { AutoDownloader } from "./auto-downloader";
+import { ConfirmModal } from "./confirm-modal";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -68,38 +69,43 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 			.setDesc("Скачать yt-dlp и ffmpeg автоматически (только Windows)")
 			.addButton((btn) => {
 				btn.setButtonText("Скачать автоматически");
-				btn.onClick(async () => {
-					new Notice("Предупреждение: Вы скачиваете исполняемые файлы (yt-dlp и ffmpeg) со сторонних серверов (GitHub). Вы делаете это на свой страх и риск.", 8000);
-					
-					btn.setDisabled(true);
-					
-					// Create binDir if not exists
-					if (!fs.existsSync(binDir)) {
-						fs.mkdirSync(binDir, { recursive: true });
-					}
-
-					try {
-						await AutoDownloader.downloadYtDlp(binDir, (msg) => {
-							btn.setButtonText(msg);
-						});
-						await AutoDownloader.downloadFfmpeg(binDir, (msg) => {
-							btn.setButtonText(msg);
-						});
-						
-						btn.setButtonText("Готово ✅");
-						new Notice("Зависимости успешно скачаны!");
-					} catch (e) {
-						console.error("Download error:", e);
-						btn.setButtonText("Ошибка скачивания ❌");
-						new Notice(`Ошибка: ${e instanceof Error ? e.message : String(e)}`, 8000);
-					} finally {
-						btn.setDisabled(false);
-						window.setTimeout(() => {
-							if (btn.buttonEl.innerText.includes("✅") || btn.buttonEl.innerText.includes("❌")) {
-								btn.setButtonText("Скачать автоматически");
+				btn.onClick(() => {
+					new ConfirmModal(
+						this.app,
+						"Предупреждение о безопасности",
+						"Вы собираетесь скачать исполняемые файлы (yt-dlp и ffmpeg) со сторонних серверов (GitHub).\n\nЗагрузка и запуск бинарных файлов из интернета всегда несет определенные риски безопасности. Автор плагина не несет ответственности за любой возможный ущерб.\n\nВы делаете это на свой страх и риск. Продолжить?",
+						async () => {
+							btn.setDisabled(true);
+							
+							// Create binDir if not exists
+							if (!fs.existsSync(binDir)) {
+								fs.mkdirSync(binDir, { recursive: true });
 							}
-						}, 3000);
-					}
+
+							try {
+								await AutoDownloader.downloadYtDlp(binDir, (msg) => {
+									btn.setButtonText(msg);
+								});
+								await AutoDownloader.downloadFfmpeg(binDir, (msg) => {
+									btn.setButtonText(msg);
+								});
+								
+								btn.setButtonText("Готово ✅");
+								new Notice("Зависимости успешно скачаны!");
+							} catch (e) {
+								console.error("Download error:", e);
+								btn.setButtonText("Ошибка скачивания ❌");
+								new Notice(`Ошибка: ${e instanceof Error ? e.message : String(e)}`, 8000);
+							} finally {
+								btn.setDisabled(false);
+								window.setTimeout(() => {
+									if (btn.buttonEl.innerText.includes("✅") || btn.buttonEl.innerText.includes("❌")) {
+										btn.setButtonText("Скачать автоматически");
+									}
+								}, 3000);
+							}
+						}
+					).open();
 				});
 			});
 
