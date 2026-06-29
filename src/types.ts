@@ -12,7 +12,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	downloadPath: "downloads",
 	defaultVideoFormat: "mp4",
 	defaultVideoQuality: "1080",
-	defaultAudioFormat: "mp3",
+	defaultAudioFormat: "m4a",
 	createNote: false,
 	impersonateBrowser: false,
 	noteTemplate: `---
