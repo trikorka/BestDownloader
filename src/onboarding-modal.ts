@@ -1,4 +1,4 @@
-import { App, Modal, Notice, setIcon, FileSystemAdapter } from "obsidian";
+import { App, Modal, Notice, FileSystemAdapter } from "obsidian";
 import BestDownloaderPlugin from "./main";
 import { AutoDownloader } from "./auto-downloader";
 import { ConfirmModal } from "./confirm-modal";
@@ -71,7 +71,7 @@ export class OnboardingModal extends Modal {
 		slide4.createEl("p", { text: "Вы можете установить их самостоятельно:" });
 		const manualList = slide4.createEl("ul");
 		manualList.createEl("li", { text: "Скачайте yt-dlp.exe и ffmpeg.exe с их официальных сайтов (GitHub)." });
-		manualList.createEl("li", { text: "Поместите эти файлы в папку .obsidian/plugins/best-downloader/bin/ внутри вашего хранилища." });
+		manualList.createEl("li", { text: "Поместите эти файлы в папку bin/ внутри папки плагина в вашем хранилище." });
 		this.slides.push(slide4);
 
 		// Slide 5: Auto-download
@@ -102,7 +102,7 @@ export class OnboardingModal extends Modal {
 					}
 
 					// Run asynchronously without blocking UI
-					(async () => {
+					void (async () => {
 						try {
 							await AutoDownloader.downloadYtDlp(binDir, (msg) => {
 								autoBtn.innerText = msg;
@@ -159,18 +159,22 @@ export class OnboardingModal extends Modal {
 			if (this.currentSlide === 0) {
 				nextBtn.addClass("mod-warning"); // Make it look like a confirmation button
 			}
-			nextBtn.addEventListener("click", async () => {
-				if (this.currentSlide === 0 && !this.plugin.settings.hasAcceptedDisclaimer) {
-					this.plugin.settings.hasAcceptedDisclaimer = true;
-					await this.plugin.saveSettings();
-				}
-				this.currentSlide++;
-				this.renderSlide();
+			nextBtn.addEventListener("click", () => {
+				void (async () => {
+					if (this.currentSlide === 0 && !this.plugin.settings.hasAcceptedDisclaimer) {
+						this.plugin.settings.hasAcceptedDisclaimer = true;
+						await this.plugin.saveSettings();
+					}
+					this.currentSlide++;
+					this.renderSlide();
+				})();
 			});
 		} else {
 			const finishBtn = this.controlsContainer.createEl("button", { text: "Начать использование!", cls: "mod-cta" });
-			finishBtn.addEventListener("click", async () => {
-				await this.finishOnboarding();
+			finishBtn.addEventListener("click", () => {
+				void (async () => {
+					await this.finishOnboarding();
+				})();
 			});
 		}
 	}

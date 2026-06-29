@@ -1,7 +1,7 @@
 {
 	"id": "best-downloader",
 	"name": "Best Downloader",
-	"version": "1.0.9",
+	"version": "1.0.8",
 	"minAppVersion": "1.7.2",
 	"description": "Download videos and audio in various formats directly to your vault using yt-dlp.",
 	"author": "trikorka",

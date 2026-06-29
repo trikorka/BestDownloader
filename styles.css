@@ -741,9 +741,33 @@
 	font-weight: 600;
 }
 
-.bd-success-btn {
-	background-color: var(--interactive-success) !important;
-	color: var(--text-on-accent) !important;
+button.mod-cta.bd-success-btn {
+	background-color: var(--interactive-success);
+	color: var(--text-on-accent);
+}
+
+/* --- Utility classes for inline style replacements --- */
+.bd-pre-wrap {
+	white-space: pre-wrap;
+	margin-bottom: 20px;
+}
+
+.bd-confirm-btns {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+}
+
+.bd-mt-15 {
+	margin-top: 15px;
+}
+
+.bd-w-full {
+	width: 100%;
+}
+
+.bd-hidden {
+	visibility: hidden;
 }
 
 .bd-muted-text {

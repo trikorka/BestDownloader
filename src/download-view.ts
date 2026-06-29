@@ -88,13 +88,13 @@ export class DownloadView extends ItemView {
 		disclaimerBlock.createEl("p", { text: "Пользователь несет полную ответственность за любые действия, совершаемые с помощью данного плагина, включая соблюдение условий использования сторонних сервисов." });
 		disclaimerBlock.createEl("p", { text: "Автор плагина не несет ответственности за скачанный контент или блокировки со стороны сервисов." });
 		
-		const agreeBtn = disclaimerBlock.createEl("button", { text: "Я согласен", cls: "mod-warning" });
-		agreeBtn.style.marginTop = "15px";
-		agreeBtn.style.width = "100%";
-		agreeBtn.addEventListener("click", async () => {
-			this.plugin.settings.hasAcceptedDisclaimer = true;
-			await this.plugin.saveSettings();
-			this.renderMainView(container);
+		const agreeBtn = disclaimerBlock.createEl("button", { text: "Я согласен", cls: "mod-warning bd-mt-15 bd-w-full" });
+		agreeBtn.addEventListener("click", () => {
+			void (async () => {
+				this.plugin.settings.hasAcceptedDisclaimer = true;
+				await this.plugin.saveSettings();
+				this.renderMainView(container);
+			})();
 		});
 	}
 

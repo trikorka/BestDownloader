@@ -18,14 +18,9 @@ export class ConfirmModal extends Modal {
 		
 		contentEl.createEl("h2", { text: this.title });
 		
-		const msgEl = contentEl.createEl("p", { text: this.message });
-		msgEl.style.whiteSpace = "pre-wrap";
-		msgEl.style.marginBottom = "20px";
+		const msgEl = contentEl.createEl("p", { text: this.message, cls: "bd-pre-wrap" });
 
 		const btnContainer = contentEl.createDiv({ cls: "bd-confirm-btns" });
-		btnContainer.style.display = "flex";
-		btnContainer.style.justifyContent = "flex-end";
-		btnContainer.style.gap = "10px";
 
 		const cancelBtn = btnContainer.createEl("button", { text: "Отмена" });
 		cancelBtn.addEventListener("click", () => {
