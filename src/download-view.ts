@@ -380,7 +380,7 @@ export class DownloadView extends ItemView {
 				const formatCol = selectorsRow.createDiv({ cls: "bd-selector-col" });
 				formatCol.createEl("label", { text: "ФОРМАТ", cls: "bd-section-label" });
 				const formatSelect = formatCol.createEl("select", { cls: "dropdown bd-dropdown" });
-				const formats: AudioFormat[] = ["mp3", "m4a", "ogg", "wav", "opus"];
+				const formats: AudioFormat[] = ["mp3", "m4a", "wav", "opus"];
 				for (const fmt of formats) {
 					const opt = formatSelect.createEl("option", { value: fmt, text: fmt.toUpperCase() });
 					opt.selected = this.audioFormat === fmt;

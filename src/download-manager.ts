@@ -243,9 +243,7 @@ export class DownloadManager extends EventEmitter {
 				args.push("-f", `bestaudio${preferExt}/bestaudio/best`); // Prefer requested native format
 				args.push("-x");
 				
-				// yt-dlp expects 'vorbis' instead of 'ogg'
-				const ytDlpAudioFormat = options.audioFormat === "ogg" ? "vorbis" : options.audioFormat;
-				args.push("--audio-format", ytDlpAudioFormat);
+				args.push("--audio-format", options.audioFormat);
 				args.push("--audio-quality", "0"); // Best quality
 			} else {
 				// Video download

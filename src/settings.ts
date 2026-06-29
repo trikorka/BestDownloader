@@ -173,7 +173,6 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 					.addOptions({
 						mp3: "MP3",
 						m4a: "M4A",
-						ogg: "OGG",
 						wav: "WAV",
 						opus: "Opus",
 					})

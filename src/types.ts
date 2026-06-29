@@ -34,7 +34,7 @@ downloaded: "{{date}}"
 };
 
 export type VideoFormat = "mp4" | "webm" | "mkv";
-export type AudioFormat = "mp3" | "m4a" | "ogg" | "wav" | "opus";
+export type AudioFormat = "mp3" | "m4a" | "wav" | "opus";
 export type VideoQuality = "144" | "240" | "360" | "480" | "720" | "1080" | "1440" | "2160" | "best";
 export type DownloadType = "video" | "audio";
 
