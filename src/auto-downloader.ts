@@ -1,4 +1,4 @@
-import * as https from "https";
+import { requestUrl } from "obsidian";
 import * as fs from "fs";
 import * as path from "path";
 // @ts-ignore
@@ -33,38 +33,24 @@ export class AutoDownloader {
 		}
 	}
 
-	private static downloadFile(url: string, dest: string): Promise<void> {
-		return new Promise((resolve, reject) => {
-			const file = fs.createWriteStream(dest);
-
-			const request = https.get(url, (response) => {
-				// Handle redirects
-				if (response.statusCode === 301 || response.statusCode === 302) {
-					if (response.headers.location) {
-						file.close();
-						this.downloadFile(response.headers.location, dest).then(resolve).catch(reject);
-						return;
-					}
-				}
-
-				if (response.statusCode !== 200) {
-					reject(new Error(`Ошибка скачивания: статус ${response.statusCode}`));
-					return;
-				}
-
-				response.pipe(file);
-
-				file.on("finish", () => {
-					file.close();
-					resolve();
-				});
+	private static async downloadFile(url: string, dest: string): Promise<void> {
+		try {
+			const response = await requestUrl({
+				url: url,
+				method: "GET"
 			});
 
-			request.on("error", (err) => {
-				fs.unlink(dest, () => {});
-				reject(err);
-			});
-		});
+			if (response.status !== 200) {
+				throw new Error(`Ошибка скачивания: статус ${response.status}`);
+			}
+
+			fs.writeFileSync(dest, Buffer.from(response.arrayBuffer));
+		} catch (err) {
+			if (fs.existsSync(dest)) {
+				fs.unlinkSync(dest);
+			}
+			throw err;
+		}
 	}
 
 	private static async extractFfmpeg(zipPath: string, destDir: string): Promise<void> {
