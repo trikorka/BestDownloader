@@ -232,8 +232,11 @@ export class DownloadManager extends EventEmitter {
 			const outputTemplate = path.join(options.outputPath, filename);
 			args.push("-o", outputTemplate);
 
+			args.push("--postprocessor-args", "ffmpeg:-threads 0");
+
 			if (options.type === "audio") {
 				// Audio-only download
+				args.push("-f", "bestaudio/best"); // Download ONLY audio stream, do not download video
 				args.push("-x");
 				args.push("--audio-format", options.audioFormat);
 				args.push("--audio-quality", "0"); // Best quality
