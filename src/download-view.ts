@@ -96,10 +96,12 @@ export class DownloadView extends ItemView {
 		});
 		setIcon(settingsBtn, "settings");
 		settingsBtn.addEventListener("click", () => {
-			// @ts-ignore
-			this.app.setting.open();
-			// @ts-ignore
-			this.app.setting.openTabById(this.plugin.manifest.id);
+			interface AppWithSetting {
+				setting: { open: () => void; openTabById: (id: string) => void };
+			}
+			const appWithSetting = this.app as unknown as AppWithSetting;
+			appWithSetting.setting.open();
+			appWithSetting.setting.openTabById(this.plugin.manifest.id);
 		});
 
 		const inputGroup = container.createDiv({ cls: "bd-input-group" });

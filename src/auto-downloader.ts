@@ -70,9 +70,9 @@ export class AutoDownloader {
 	private static async extractFfmpeg(zipPath: string, destDir: string): Promise<void> {
 		return new Promise((resolve, reject) => {
 			try {
-				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- AdmZip has no strict types
 				const zip = new AdmZip(zipPath);
-				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- AdmZip has no strict types
 				const zipEntries: Array<{ entryName: string; getData: () => Buffer }> = zip.getEntries();
 				let found = false;
 

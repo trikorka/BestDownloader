@@ -146,6 +146,7 @@ export function formatFileSize(bytes: number): string {
  */
 export function sanitizeFilename(name: string): string {
 	return name
+		// eslint-disable-next-line no-control-regex -- Need to strip control characters for valid filename
 		.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_")
 		.replace(/\s+/g, " ")
 		.trim()
