@@ -1,0 +1,24 @@
+{
+	"name": "best-downloader",
+	"version": "1.0.0",
+	"description": "Obsidian plugin for downloading YouTube videos and audio",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "node esbuild.config.mjs production"
+	},
+	"keywords": [],
+	"author": "trikorka",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/adm-zip": "^0.5.8",
+		"@types/node": "^20.11.0",
+		"builtin-modules": "^3.3.0",
+		"esbuild": "0.21.5",
+		"obsidian": "latest",
+		"typescript": "5.4.5"
+	},
+	"dependencies": {
+		"adm-zip": "^0.5.18"
+	}
+}
