@@ -90,7 +90,7 @@ export interface DownloadProgress {
 	totalSize: string;
 	speed: string;
 	eta: string;
-	status: "downloading" | "converting" | "merging" | "finished" | "error" | "item_finished";
+	status: "starting" | "downloading" | "converting" | "merging" | "finished" | "error" | "item_finished";
 	filename?: string;
 	playlistIndex?: number;
 	playlistCount?: number;

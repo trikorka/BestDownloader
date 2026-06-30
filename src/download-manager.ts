@@ -492,6 +492,20 @@ export class DownloadManager extends EventEmitter {
 
 					args.push(options.url);
 
+					// Emit starting progress so UI knows we are fetching metadata
+					const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
+					const startingProgress: DownloadProgress = {
+						percent: overallPercent,
+						itemPercent: 0,
+						totalSize: "—",
+						speed: "—",
+						eta: "—",
+						status: "starting",
+						playlistIndex: itemIndex + 1,
+						playlistCount: items.length
+					};
+					this.emit("progress", startingProgress);
+					
 					const proc = spawn(ytDlpPath, args);
 					this.activeProcesses.add(proc);
 

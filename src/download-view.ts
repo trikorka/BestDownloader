@@ -658,6 +658,24 @@ export class DownloadView extends ItemView {
 			};
 
 			switch (progress.status) {
+				case "starting": {
+					let isPlaylistMsg = false;
+					if (progress.playlistIndex && progress.playlistCount) {
+						isPlaylistMsg = true;
+						updateCard(0, "bd-text-muted", "loader", "bd-spin-anim");
+					}
+					
+					statusIcon.empty();
+					setIcon(statusIcon, "loader");
+					(statusIcon.firstChild as HTMLElement)?.addClass("bd-spin-anim");
+					
+					statusMsg.empty();
+					if (isPlaylistMsg && playlistCountEl) {
+						playlistCountEl.setText(`${progress.playlistIndex}/${progress.playlistCount}`);
+					}
+					statusMsg.createSpan({ text: "Подготовка...", cls: "bd-text-muted" });
+					break;
+				}
 				case "downloading": {
 					statusIcon.empty();
 					let isPlaylistMsg = false;
