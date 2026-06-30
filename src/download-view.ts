@@ -157,24 +157,29 @@ export class DownloadView extends ItemView {
 		this.downloadingContainer.hide();
 
 		const triggerFetch = async () => {
-			const url = this.urlInput.value.trim();
+			const rawInput = this.urlInput.value.trim();
 
-			if (!url) {
+			if (!rawInput) {
 				this.errorMsg.show();
 				this.errorMsg.setText("Введите ссылку");
 				return;
 			}
 
-			if (!isValidUrl(url)) {
+			const urls = rawInput.split(/\s+/).filter(u => u.length > 0);
+			const validUrls = urls.filter(u => isValidUrl(u));
+
+			if (validUrls.length === 0) {
 				this.errorMsg.show();
 				this.errorMsg.setText("Некорректная ссылка");
 				return;
 			}
 
+			const fetchTarget = validUrls.length === 1 ? validUrls[0] : validUrls;
+
 			this.errorMsg.hide();
 			this.urlInput.disabled = true;
 			this.urlInput.placeholder = "Получение информации...";
-			this.plugin.lastProcessedUrl = url;
+			this.plugin.lastProcessedUrl = validUrls[0]; // Fallback to first URL
 			
 			// Show spinner in errorMsg container temporarily as a loading state
 			this.errorMsg.empty();
@@ -186,7 +191,7 @@ export class DownloadView extends ItemView {
 			this.errorMsg.createSpan({ text: "Загрузка информации о видео..." });
 
 			try {
-				this.videoInfo = await this.downloadManager.getVideoInfo(url);
+				this.videoInfo = await this.downloadManager.getVideoInfo(fetchTarget);
 				this.errorMsg.hide(); // Hide loading spinner
 				this.errorMsg.removeClass("bd-error-loading");
 				this.urlInput.disabled = false;
@@ -221,8 +226,9 @@ export class DownloadView extends ItemView {
 		// Submit on Enter
 		this.urlInput.addEventListener("keydown", (e: KeyboardEvent) => {
 			if (e.key === "Enter" && !this.urlInput.disabled) {
-				const url = this.urlInput.value.trim();
-				if (isValidUrl(url)) {
+				const rawInput = this.urlInput.value.trim();
+				const urls = rawInput.split(/\s+/).filter(u => u.length > 0);
+				if (urls.length > 0 && urls.every(u => isValidUrl(u))) {
 					this.selectedPlaylistIndices.clear();
 					void triggerFetch();
 				}
@@ -230,8 +236,9 @@ export class DownloadView extends ItemView {
 		});
 
 		this.urlInput.addEventListener("input", () => {
-			const url = this.urlInput.value.trim();
-			if (isValidUrl(url) && !this.urlInput.disabled) {
+			const rawInput = this.urlInput.value.trim();
+			const urls = rawInput.split(/\s+/).filter(u => u.length > 0);
+			if (urls.length > 0 && urls.every(u => isValidUrl(u)) && !this.urlInput.disabled) {
 				this.selectedPlaylistIndices.clear();
 				void triggerFetch();
 			}
@@ -792,6 +799,19 @@ export class DownloadView extends ItemView {
 		// Start download
 		const outputPath = path.join(this.vaultPath, this.plugin.settings.downloadPath);
 
+		let virtualPlaylistUrls: string[] | undefined;
+		let playlistItems: number[] | undefined;
+		
+		if (this.videoInfo.isVirtualPlaylist && this.videoInfo.entries) {
+			// For virtual playlists, map the selected indices to their actual URLs
+			const selectedIndices = Array.from(this.selectedPlaylistIndices).sort((a,b) => a - b);
+			virtualPlaylistUrls = selectedIndices
+				.map(idx => this.videoInfo!.entries![idx - 1]?.url)
+				.filter(url => !!url) as string[];
+		} else if (this.videoInfo.isPlaylist) {
+			playlistItems = Array.from(this.selectedPlaylistIndices).sort((a,b) => a - b);
+		}
+
 		const options: DownloadOptions = {
 			url: this.videoInfo.webpage_url,
 			type: this.downloadType,
@@ -801,7 +821,8 @@ export class DownloadView extends ItemView {
 			outputPath: outputPath,
 			thumbnailPath: path.join(this.vaultPath, this.plugin.settings.thumbnailPath),
 			isPlaylist: this.videoInfo.isPlaylist,
-			playlistItems: this.videoInfo.isPlaylist ? Array.from(this.selectedPlaylistIndices).sort((a,b) => a - b) : undefined,
+			playlistItems: playlistItems,
+			virtualPlaylistUrls: virtualPlaylistUrls,
 		};
 
 		try {

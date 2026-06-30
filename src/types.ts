@@ -46,12 +46,14 @@ export interface VideoInfo {
 	webpage_url: string;
 	filesize_approx?: number;
 	isPlaylist?: boolean;
+	isVirtualPlaylist?: boolean;
 	playlistCount?: number;
 	entries?: PlaylistEntry[];
 }
 
 export interface PlaylistEntry {
 	id: string;
+	url?: string;
 	title: string;
 	thumbnail: string;
 	duration: number;
@@ -82,6 +84,7 @@ export interface DownloadOptions {
 	filename?: string;
 	isPlaylist?: boolean;
 	playlistItems?: number[];
+	virtualPlaylistUrls?: string[];
 }
 
 export interface DownloadProgress {

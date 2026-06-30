@@ -60,7 +60,59 @@ export class DownloadManager extends EventEmitter {
 	/**
 	 * Get video metadata using yt-dlp --dump-json
 	 */
-	async getVideoInfo(url: string): Promise<VideoInfo> {
+	async getVideoInfo(url: string | string[]): Promise<VideoInfo> {
+		if (Array.isArray(url) && url.length > 5) {
+			const chunkSize = 5;
+			const chunks: string[][] = [];
+			for (let i = 0; i < url.length; i += chunkSize) {
+				chunks.push(url.slice(i, i + chunkSize));
+			}
+
+			const results = await Promise.all(
+				chunks.map(chunk => this._fetchVideoInfo(chunk))
+			);
+
+			const combinedEntries: any[] = [];
+			for (const res of results) {
+				if ((res.isPlaylist || res.isVirtualPlaylist) && res.entries) {
+					combinedEntries.push(...res.entries);
+				} else {
+					combinedEntries.push({
+						id: res.id,
+						url: res.webpage_url,
+						title: res.title,
+						thumbnail: res.thumbnail,
+						duration: res.duration,
+						channel: res.channel
+					});
+				}
+			}
+
+			const videoInfo: VideoInfo = {
+				id: "virtual-playlist",
+				title: "Пользовательский список",
+				description: "Список добавленных ссылок",
+				thumbnail: combinedEntries.length > 0 ? combinedEntries[0].thumbnail : "",
+				duration: 0,
+				channel: "Смешанные",
+				upload_date: "",
+				view_count: 0,
+				like_count: 0,
+				formats: [],
+				webpage_url: url[0],
+				isPlaylist: true,
+				isVirtualPlaylist: true,
+				playlistCount: combinedEntries.length,
+				entries: combinedEntries
+			};
+			this.lastVideoInfo = videoInfo;
+			return videoInfo;
+		}
+
+		return this._fetchVideoInfo(url);
+	}
+
+	private async _fetchVideoInfo(url: string | string[]): Promise<VideoInfo> {
 		return new Promise((resolve, reject) => {
 
 			const settings = this.settingsGetter();
@@ -75,13 +127,18 @@ export class DownloadManager extends EventEmitter {
 				"--dump-single-json",
 				"--flat-playlist",
 				"--no-warnings",
+				"--ignore-errors",
 			];
 
 			if (settings.impersonateBrowser) {
 				args.push("--impersonate", "chrome");
 			}
 
-			args.push(url);
+			if (Array.isArray(url)) {
+				args.push(...url);
+			} else {
+				args.push(url);
+			}
 
 			const proc = spawn(ytDlpPath, args);
 
@@ -97,63 +154,125 @@ export class DownloadManager extends EventEmitter {
 			});
 
 			proc.on("close", (code: number) => {
-				if (code !== 0) {
-					reject(
-						new Error(
-							`yt-dlp exited with code ${code}: ${stderr.trim()}`
-						)
-					);
+				const lines = stdout.trim().split("\n").filter(l => l.trim() !== "");
+
+				if (lines.length === 0) {
+					if (code !== 0) {
+						reject(
+							new Error(
+								`yt-dlp exited with code ${code}: ${stderr.trim()}`
+							)
+						);
+					} else {
+						reject(new Error("No metadata returned"));
+					}
 					return;
 				}
 
 				try {
-					const info = JSON.parse(stdout.trim()) as YtDlpRawInfo;
-					const isPlaylist = info._type === "playlist" || Array.isArray(info.entries);
-					const videoInfo: VideoInfo = {
-						id: info.id || "",
-						title: info.title || "Unknown",
-						description: info.description || "",
-						thumbnail:
-							info.thumbnail ||
-							(info.thumbnails &&
-							info.thumbnails.length > 0
-								? info.thumbnails[
-										info.thumbnails.length - 1
-									].url
-								: ""),
-						duration: info.duration || 0,
-						channel: info.channel || info.uploader || "Unknown",
-						upload_date: info.upload_date || "",
-						view_count: info.view_count || 0,
-						like_count: info.like_count || 0,
-						formats: (info.formats || []).map(
-							(f: Record<string, unknown>) => ({
-								format_id: f.format_id || "",
-								format_note: f.format_note || "",
-								ext: f.ext || "",
-								resolution: f.resolution || "",
-								filesize: f.filesize || f.filesize_approx || null,
-								vcodec: f.vcodec || "none",
-								acodec: f.acodec || "none",
-								height: f.height || null,
-								width: f.width || null,
-								tbr: f.tbr || null,
-							})
-						),
-						webpage_url: info.webpage_url || url,
-						filesize_approx: info.filesize_approx || undefined,
-						isPlaylist: isPlaylist,
-						playlistCount: isPlaylist && info.entries ? info.entries.length : undefined,
-						entries: isPlaylist && info.entries ? info.entries.map((e: YtDlpRawEntry) => ({
-							id: e.id || "",
-							title: e.title || "Unknown",
-							thumbnail: e.thumbnail || (e.thumbnails && e.thumbnails.length > 0 ? e.thumbnails[e.thumbnails.length - 1].url : ""),
-							duration: e.duration || 0,
-							channel: e.uploader || e.channel || info.uploader || info.channel || "Unknown"
-						})) : undefined,
-					};
-					this.lastVideoInfo = videoInfo;
-					resolve(videoInfo);
+					if (lines.length > 1 || Array.isArray(url)) {
+						// Virtual playlist (multiple independent URLs)
+						const entries: any[] = [];
+						for (const line of lines) {
+							try {
+								const p = JSON.parse(line.trim()) as YtDlpRawInfo;
+								const isP = p._type === "playlist" || Array.isArray(p.entries);
+								if (isP && p.entries) {
+									p.entries.forEach((e: any) => {
+										entries.push({
+											id: e.id || "",
+											url: e.url || e.webpage_url || p.webpage_url || p.original_url || "",
+											title: e.title || "Unknown",
+											thumbnail: e.thumbnail || (e.thumbnails && e.thumbnails.length > 0 ? e.thumbnails[e.thumbnails.length - 1].url : ""),
+											duration: e.duration || 0,
+											channel: e.uploader || e.channel || p.uploader || p.channel || "Unknown"
+										});
+									});
+								} else {
+									entries.push({
+										id: p.id || "",
+										url: p.webpage_url || p.original_url || "",
+										title: p.title || "Unknown",
+										thumbnail: p.thumbnail || (p.thumbnails && p.thumbnails.length > 0 ? p.thumbnails[p.thumbnails.length - 1].url : ""),
+										duration: p.duration || 0,
+										channel: p.uploader || p.channel || "Unknown"
+									});
+								}
+							} catch (parseErr) {
+								console.warn("Failed to parse a line of yt-dlp output:", parseErr);
+							}
+						}
+
+						const videoInfo: VideoInfo = {
+							id: "virtual-playlist",
+							title: "Пользовательский список",
+							description: "Список добавленных ссылок",
+							thumbnail: entries.length > 0 ? entries[0].thumbnail : "",
+							duration: 0,
+							channel: "Смешанные",
+							upload_date: "",
+							view_count: 0,
+							like_count: 0,
+							formats: [],
+							webpage_url: Array.isArray(url) ? url[0] : url,
+							isPlaylist: true,
+							isVirtualPlaylist: true,
+							playlistCount: entries.length,
+							entries: entries
+						};
+						this.lastVideoInfo = videoInfo;
+						resolve(videoInfo);
+					} else {
+						// Single URL parsing
+						const info = JSON.parse(lines[0]) as YtDlpRawInfo;
+						const isPlaylist = info._type === "playlist" || Array.isArray(info.entries);
+						const videoInfo: VideoInfo = {
+							id: info.id || "",
+							title: info.title || "Unknown",
+							description: info.description || "",
+							thumbnail:
+								info.thumbnail ||
+								(info.thumbnails &&
+								info.thumbnails.length > 0
+									? info.thumbnails[
+											info.thumbnails.length - 1
+										].url
+									: ""),
+							duration: info.duration || 0,
+							channel: info.channel || info.uploader || "Unknown",
+							upload_date: info.upload_date || "",
+							view_count: info.view_count || 0,
+							like_count: info.like_count || 0,
+							formats: (info.formats || []).map(
+								(f: Record<string, unknown>) => ({
+									format_id: f.format_id || "",
+									format_note: f.format_note || "",
+									ext: f.ext || "",
+									resolution: f.resolution || "",
+									filesize: f.filesize || f.filesize_approx || null,
+									vcodec: f.vcodec || "none",
+									acodec: f.acodec || "none",
+									height: f.height || null,
+									width: f.width || null,
+									tbr: f.tbr || null,
+								})
+							),
+							webpage_url: info.webpage_url || (Array.isArray(url) ? url[0] : url),
+							filesize_approx: info.filesize_approx || undefined,
+							isPlaylist: isPlaylist,
+							playlistCount: isPlaylist && info.entries ? info.entries.length : undefined,
+							entries: isPlaylist && info.entries ? info.entries.map((e: YtDlpRawEntry) => ({
+								id: e.id || "",
+								url: e.url || e.webpage_url || info.webpage_url || info.original_url || "",
+								title: e.title || "Unknown",
+								thumbnail: e.thumbnail || (e.thumbnails && e.thumbnails.length > 0 ? e.thumbnails[e.thumbnails.length - 1].url : ""),
+								duration: e.duration || 0,
+								channel: e.uploader || e.channel || info.uploader || info.channel || "Unknown"
+							})) : undefined,
+						};
+						this.lastVideoInfo = videoInfo;
+						resolve(videoInfo);
+					}
 				} catch (e) {
 					reject(
 						new Error(
@@ -178,6 +297,15 @@ export class DownloadManager extends EventEmitter {
 	 */
 	async download(options: DownloadOptions): Promise<string> {
 		this._isDownloading = true;
+
+		// Concurrent playlist
+		if (
+			(options.isPlaylist && options.playlistItems && options.playlistItems.length > 0 && this.settingsGetter().concurrentPlaylist) ||
+			(options.virtualPlaylistUrls && options.virtualPlaylistUrls.length > 0 && this.settingsGetter().concurrentPlaylist)
+		) {
+			return this.downloadPlaylistPipeline(options);
+		}
+
 		this.emit("start", options);
 
 		if (options.isPlaylist && options.playlistItems && options.playlistItems.length > 1) {
@@ -415,12 +543,14 @@ export class DownloadManager extends EventEmitter {
 
 	private async downloadPlaylistPipeline(options: DownloadOptions): Promise<string> {
 		const settings = this.settingsGetter();
-		const items = options.playlistItems || [];
-		if (items.length === 0) return Promise.resolve("");
+		
+		const isVirtual = options.virtualPlaylistUrls && options.virtualPlaylistUrls.length > 0;
+		const itemsCount = isVirtual ? options.virtualPlaylistUrls!.length : (options.playlistItems?.length || 0);
+		if (itemsCount === 0) return Promise.resolve("");
 
 		let lastFilename = "";
 		let hasError = false;
-		let playlistProgressState: number[] = Array.from({ length: items.length }, () => 0);
+		let playlistProgressState: number[] = Array.from({ length: itemsCount }, () => 0);
 
 		return new Promise((resolve, reject) => {
 			const runItem = async (itemIndex: number, currentItemNumber: number) => {
@@ -433,11 +563,18 @@ export class DownloadManager extends EventEmitter {
 						"--newline",
 						"--no-warnings",
 						"--ffmpeg-location",
-						ffmpegPath,
-						"--yes-playlist",
-						"--playlist-items",
-						String(currentItemNumber)
+						ffmpegPath
 					];
+
+					if (isVirtual) {
+						args.push("--no-playlist");
+					} else {
+						args.push(
+							"--yes-playlist",
+							"--playlist-items",
+							String(currentItemNumber)
+						);
+					}
 
 					if (settings.impersonateBrowser) {
 						args.push("--impersonate", "chrome");
@@ -490,10 +627,14 @@ export class DownloadManager extends EventEmitter {
 						}
 					}
 
-					args.push(options.url);
+					if (isVirtual) {
+						args.push(options.virtualPlaylistUrls![itemIndex]);
+					} else {
+						args.push(options.url);
+					}
 
 					// Emit starting progress so UI knows we are fetching metadata
-					const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
+					const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / itemsCount;
 					const startingProgress: DownloadProgress = {
 						percent: overallPercent,
 						itemPercent: 0,
@@ -502,7 +643,7 @@ export class DownloadManager extends EventEmitter {
 						eta: "—",
 						status: "starting",
 						playlistIndex: itemIndex + 1,
-						playlistCount: items.length
+						playlistCount: itemsCount
 					};
 					this.emit("progress", startingProgress);
 					
@@ -552,14 +693,14 @@ export class DownloadManager extends EventEmitter {
 								else if (currentStage === 2) cumulativeItemPercent = 90;
 								
 								playlistProgressState[itemIndex] = cumulativeItemPercent;
-								const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
+								const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / itemsCount;
 								
 								const aggregatedProgress: DownloadProgress = {
 									...progress,
 									percent: overallPercent,
 									itemPercent: cumulativeItemPercent,
 									playlistIndex: itemIndex + 1,
-									playlistCount: items.length
+									playlistCount: itemsCount
 								};
 								
 								this.emit("progress", aggregatedProgress);
@@ -583,7 +724,7 @@ export class DownloadManager extends EventEmitter {
 						
 						if (code === 0) {
 							playlistProgressState[itemIndex] = 100;
-							const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
+							const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / itemsCount;
 							// Process finished completely! Let's notify the UI so it can update the card.
 							const itemFinishedProgress: DownloadProgress = {
 								percent: overallPercent,
@@ -592,14 +733,14 @@ export class DownloadManager extends EventEmitter {
 								eta: "—",
 								status: "item_finished",
 								playlistIndex: itemIndex + 1,
-								playlistCount: items.length
+								playlistCount: itemsCount
 							};
 							this.emit("progress", itemFinishedProgress);
 						} else {
 							// Failed item (hidden/private/deleted video) — skip it, don't halt the pipeline
 							console.warn(`yt-dlp failed for playlist item ${currentItemNumber} (code ${code}): ${chunkStderr.trim()}`);
 							playlistProgressState[itemIndex] = 100; // Mark as "done" so progress moves forward
-							const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
+							const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / itemsCount;
 							const itemErrorProgress: DownloadProgress = {
 								percent: overallPercent,
 								totalSize: "—",
@@ -607,7 +748,7 @@ export class DownloadManager extends EventEmitter {
 								eta: "—",
 								status: "item_finished",
 								playlistIndex: itemIndex + 1,
-								playlistCount: items.length,
+								playlistCount: itemsCount,
 								itemError: true
 							};
 							this.emit("progress", itemErrorProgress);
@@ -626,18 +767,18 @@ export class DownloadManager extends EventEmitter {
 							networkFinished = true;
 							console.warn(`yt-dlp process error for playlist item ${currentItemNumber}:`, err.message);
 							playlistProgressState[itemIndex] = 100;
-							const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
-							const itemErrorProgress: DownloadProgress = {
-								percent: overallPercent,
+							this.emit("progress", {
+								percent: playlistProgressState.reduce((a, b) => a + b, 0) / itemsCount,
+								itemPercent: 100,
 								totalSize: "—",
 								speed: "—",
 								eta: "—",
 								status: "item_finished",
+								filename: lastFilename,
 								playlistIndex: itemIndex + 1,
-								playlistCount: items.length,
-								itemError: true
-							};
-							this.emit("progress", itemErrorProgress);
+								playlistCount: itemsCount,
+								itemError: false
+							});
 							itemResolve(); // Don't reject — continue pipeline
 						}
 					});
@@ -646,9 +787,9 @@ export class DownloadManager extends EventEmitter {
 
 			const runPipeline = async () => {
 				try {
-					for (let i = 0; i < items.length; i++) {
+					for (let i = 0; i < itemsCount; i++) {
 						if (!this._isDownloading) break;
-						await runItem(i, items[i]);
+						await runItem(i, isVirtual ? 0 : options.playlistItems![i]);
 					}
 					
 					const waitForProcesses = () => {
