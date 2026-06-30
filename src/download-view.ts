@@ -773,8 +773,7 @@ export class DownloadView extends ItemView {
 					}
 
 					if (failedPlaylistIndices.size > 0 && this.videoInfo.isPlaylist && this.videoInfo.entries) {
-						retryBtn.style.setProperty("display", "flex", "important");
-						retryBtn.style.setProperty("visibility", "visible", "important");
+						retryBtn.addClass("bd-force-show");
 					}
 					break;
 				case "error": {

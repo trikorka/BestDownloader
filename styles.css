@@ -956,3 +956,8 @@ span.bd-text-blue { color: var(--color-blue); }
 span.bd-text-yellow { color: var(--color-yellow); }
 span.bd-text-green { color: var(--color-green); }
 span.bd-text-red { color: var(--color-red); }
+
+.bd-force-show {
+	display: flex !important;
+	visibility: visible !important;
+}

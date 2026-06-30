@@ -27,6 +27,7 @@ interface YtDlpRawInfo {
 	filesize_approx?: number;
 	_type?: string;
 	entries?: YtDlpRawEntry[];
+	original_url?: string;
 }
 
 interface YtDlpRawEntry {
@@ -38,6 +39,9 @@ interface YtDlpRawEntry {
 	duration?: number;
 	channel?: string;
 	uploader?: string;
+	url?: string;
+	webpage_url?: string;
+	original_url?: string;
 }
 
 export class DownloadManager extends EventEmitter {
@@ -69,7 +73,7 @@ export class DownloadManager extends EventEmitter {
 				chunks.push(url.slice(i, i + chunkSize));
 			}
 
-			const results: any[] = new Array(chunks.length);
+			const results: VideoInfo[] = new Array(chunks.length);
 			let chunkIndex = 0;
 			const maxConcurrent = settings.metadataProcessLimit || 1;
 
@@ -82,7 +86,7 @@ export class DownloadManager extends EventEmitter {
 
 			await Promise.all(workers);
 
-			const combinedEntries: any[] = [];
+			const combinedEntries: import("./types").PlaylistEntry[] = [];
 			for (const res of results) {
 				if ((res.isPlaylist || res.isVirtualPlaylist) && res.entries) {
 					combinedEntries.push(...res.entries);
@@ -182,13 +186,13 @@ export class DownloadManager extends EventEmitter {
 				try {
 					if (lines.length > 1 || Array.isArray(url)) {
 						// Virtual playlist (multiple independent URLs)
-						const entries: any[] = [];
+						const entries: import("./types").PlaylistEntry[] & { original_url?: string }[] = [];
 						for (const line of lines) {
 							try {
 								const p = JSON.parse(line.trim()) as YtDlpRawInfo;
 								const isP = p._type === "playlist" || Array.isArray(p.entries);
 								if (isP && p.entries) {
-									p.entries.forEach((e: any) => {
+									p.entries.forEach((e: YtDlpRawEntry) => {
 										entries.push({
 											id: e.id || "",
 											original_url: p.original_url || p.webpage_url || "",
@@ -216,7 +220,7 @@ export class DownloadManager extends EventEmitter {
 						}
 
 						if (Array.isArray(url)) {
-							const mappedEntries: any[] = [];
+							const mappedEntries: import("./types").PlaylistEntry[] & { original_url?: string }[] = [];
 							for (const reqUrl of url) {
 								let match = entries.find(e => e.original_url === reqUrl || e.url === reqUrl);
 								if (!match) {
@@ -835,7 +839,6 @@ export class DownloadManager extends EventEmitter {
 
 			const runPipeline = async () => {
 				try {
-					const settings = this.settingsGetter();
 
 					for (let i = 0; i < itemsCount; i++) {
 						if (!this._isDownloading) break;
