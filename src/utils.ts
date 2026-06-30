@@ -78,7 +78,7 @@ export function parseProgress(line: string): DownloadProgress | null {
 	}
 
 	// [Merger] Merging formats
-	if (line.includes("[Merger]") || line.includes("[ffmpeg]")) {
+	if (line.includes("[Merger] Merging formats into")) {
 		return {
 			percent: 100,
 			totalSize: "—",
@@ -89,7 +89,7 @@ export function parseProgress(line: string): DownloadProgress | null {
 	}
 
 	// [ExtractAudio] / conversion
-	if (line.includes("[ExtractAudio]") || line.includes("Converting")) {
+	if (line.includes("[ExtractAudio] Destination:") || line.includes("[ffmpeg] Converting video")) {
 		return {
 			percent: 100,
 			totalSize: "—",
