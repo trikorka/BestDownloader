@@ -1,4 +1,5 @@
-import { ItemView, WorkspaceLeaf, Notice, setIcon, activeDocument } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, setIcon } from "obsidian";
+declare const activeDocument: Document;
 import type BestDownloaderPlugin from "./main";
 import { DownloadManager } from "./download-manager";
 import {
@@ -289,7 +290,7 @@ export class DownloadView extends ItemView {
 					} else {
 						this.selectedPlaylistIndices.delete(itemIndex);
 					}
-					(activeDocument as Document).dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
+					activeDocument.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
 					updateToggleIcon();
 				});
 				
@@ -330,7 +331,7 @@ export class DownloadView extends ItemView {
 					}
 				});
 				updateToggleIcon();
-				(activeDocument as Document).dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
+				activeDocument.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
 			});
 		} else {
 			// Single Video Card - Large card
@@ -467,10 +468,10 @@ export class DownloadView extends ItemView {
 		updateDownloadBtn();
 
 		const onSelectionChanged = () => updateDownloadBtn();
-		(activeDocument as Document).addEventListener("bd-playlist-selection-changed", onSelectionChanged);
+		activeDocument.addEventListener("bd-playlist-selection-changed", onSelectionChanged);
 
 		downloadBtn.addEventListener("click", () => {
-			(activeDocument as Document).removeEventListener("bd-playlist-selection-changed", onSelectionChanged);
+			activeDocument.removeEventListener("bd-playlist-selection-changed", onSelectionChanged);
 			void this.startDownload();
 		});
 	}
@@ -603,7 +604,7 @@ export class DownloadView extends ItemView {
 			statusMsg = statusText.createSpan();
 
 			// We don't strictly need a card progress bar since the global one is inside the card
-			const dummyProgress = (activeDocument as Document).createElement("progress");
+			const dummyProgress = activeDocument.createElement("progress");
 			playlistCards.set(1, {
 				container: card,
 				progressBar: dummyProgress,
