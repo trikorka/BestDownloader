@@ -94,6 +94,7 @@ export interface DownloadProgress {
 	filename?: string;
 	playlistIndex?: number;
 	playlistCount?: number;
+	itemError?: boolean;
 }
 
 export interface DependencyStatus {

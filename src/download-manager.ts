@@ -581,15 +581,28 @@ export class DownloadManager extends EventEmitter {
 								playlistCount: items.length
 							};
 							this.emit("progress", itemFinishedProgress);
+						} else {
+							// Failed item (hidden/private/deleted video) — skip it, don't halt the pipeline
+							console.warn(`yt-dlp failed for playlist item ${currentItemNumber} (code ${code}): ${chunkStderr.trim()}`);
+							playlistProgressState[itemIndex] = 100; // Mark as "done" so progress moves forward
+							const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
+							const itemErrorProgress: DownloadProgress = {
+								percent: overallPercent,
+								totalSize: "—",
+								speed: "—",
+								eta: "—",
+								status: "item_finished",
+								playlistIndex: itemIndex + 1,
+								playlistCount: items.length,
+								itemError: true
+							};
+							this.emit("progress", itemErrorProgress);
 						}
 
 						if (!networkFinished) {
 							networkFinished = true;
-							if (code === 0) itemResolve();
-							else {
-								hasError = true;
-								itemReject(new Error(`yt-dlp завершился с кодом ${code}: ${chunkStderr.trim()}`));
-							}
+							// Always resolve — even on error — so the pipeline continues to the next item
+							itemResolve();
 						}
 					});
 
@@ -597,8 +610,21 @@ export class DownloadManager extends EventEmitter {
 						this.activeProcesses.delete(proc);
 						if (!networkFinished) {
 							networkFinished = true;
-							hasError = true;
-							itemReject(err);
+							console.warn(`yt-dlp process error for playlist item ${currentItemNumber}:`, err.message);
+							playlistProgressState[itemIndex] = 100;
+							const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
+							const itemErrorProgress: DownloadProgress = {
+								percent: overallPercent,
+								totalSize: "—",
+								speed: "—",
+								eta: "—",
+								status: "item_finished",
+								playlistIndex: itemIndex + 1,
+								playlistCount: items.length,
+								itemError: true
+							};
+							this.emit("progress", itemErrorProgress);
+							itemResolve(); // Don't reject — continue pipeline
 						}
 					});
 				});

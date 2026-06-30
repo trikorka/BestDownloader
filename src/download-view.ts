@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, Notice, setIcon } from "obsidian";
+declare const activeDocument: Document;
 import type BestDownloaderPlugin from "./main";
 import { DownloadManager } from "./download-manager";
 import {
@@ -289,7 +290,7 @@ export class DownloadView extends ItemView {
 					} else {
 						this.selectedPlaylistIndices.delete(itemIndex);
 					}
-					document.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
+					activeDocument.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
 					updateToggleIcon();
 				});
 				
@@ -330,7 +331,7 @@ export class DownloadView extends ItemView {
 					}
 				});
 				updateToggleIcon();
-				document.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
+				activeDocument.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
 			});
 		} else {
 			// Single Video Card - Large card
@@ -467,10 +468,10 @@ export class DownloadView extends ItemView {
 		updateDownloadBtn();
 
 		const onSelectionChanged = () => updateDownloadBtn();
-		document.addEventListener("bd-playlist-selection-changed", onSelectionChanged);
+		activeDocument.addEventListener("bd-playlist-selection-changed", onSelectionChanged);
 
 		downloadBtn.addEventListener("click", () => {
-			document.removeEventListener("bd-playlist-selection-changed", onSelectionChanged);
+			activeDocument.removeEventListener("bd-playlist-selection-changed", onSelectionChanged);
 			void this.startDownload();
 		});
 	}
@@ -603,7 +604,7 @@ export class DownloadView extends ItemView {
 			statusMsg = statusText.createSpan();
 
 			// We don't strictly need a card progress bar since the global one is inside the card
-			const dummyProgress = document.createElement("progress");
+			const dummyProgress = activeDocument.createElement("progress");
 			playlistCards.set(1, {
 				container: card,
 				progressBar: dummyProgress,
@@ -701,7 +702,11 @@ export class DownloadView extends ItemView {
 				}
 				case "item_finished": {
 					// When a single item in the pipeline fully finishes
-					updateCard(-1, "bd-text-accent", "check-circle"); // -1 to hide progress bar
+					if (progress.itemError) {
+						updateCard(-1, "bd-text-red", "alert-circle"); // Show error icon for failed items
+					} else {
+						updateCard(-1, "bd-text-accent", "check-circle"); // -1 to hide progress bar
+					}
 					
 					// Make sure we remove active state from it so it looks complete
 					const idx = progress.playlistIndex || 1;
