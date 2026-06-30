@@ -10,6 +10,9 @@ export interface PluginSettings {
 	thumbnailPath: string;
 	thumbnailFormat: ThumbnailFormat;
 	concurrentPlaylist: boolean;
+	metadataChunkSize: number;
+	metadataProcessLimit: number;
+	restrictFilenames: boolean;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -24,6 +27,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	thumbnailPath: "thumbnails",
 	thumbnailFormat: "original",
 	concurrentPlaylist: true,
+	metadataChunkSize: 5,
+	metadataProcessLimit: 10,
+	restrictFilenames: false,
 };
 
 export type VideoFormat = "mp4" | "webm" | "mkv";

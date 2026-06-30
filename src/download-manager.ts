@@ -4,7 +4,7 @@ import {
 	DownloadOptions,
 	DownloadProgress,
 } from "./types";
-import { parseProgress, sanitizeFilename } from "./utils";
+import { parseProgress, sanitizeFilename, extractVideoId } from "./utils";
 import * as path from "path";
 import * as fs from "fs";
 import { spawn, exec } from "child_process";
@@ -61,16 +61,26 @@ export class DownloadManager extends EventEmitter {
 	 * Get video metadata using yt-dlp --dump-json
 	 */
 	async getVideoInfo(url: string | string[]): Promise<VideoInfo> {
-		if (Array.isArray(url) && url.length > 5) {
-			const chunkSize = 5;
+		const settings = this.settingsGetter();
+		if (Array.isArray(url) && url.length > settings.metadataChunkSize) {
+			const chunkSize = settings.metadataChunkSize;
 			const chunks: string[][] = [];
 			for (let i = 0; i < url.length; i += chunkSize) {
 				chunks.push(url.slice(i, i + chunkSize));
 			}
 
-			const results = await Promise.all(
-				chunks.map(chunk => this._fetchVideoInfo(chunk))
-			);
+			const results: any[] = new Array(chunks.length);
+			let chunkIndex = 0;
+			const maxConcurrent = settings.metadataProcessLimit || 1;
+
+			const workers = Array(Math.min(maxConcurrent, chunks.length)).fill(null).map(async () => {
+				while (chunkIndex < chunks.length) {
+					const currentIndex = chunkIndex++;
+					results[currentIndex] = await this._fetchVideoInfo(chunks[currentIndex]);
+				}
+			});
+
+			await Promise.all(workers);
 
 			const combinedEntries: any[] = [];
 			for (const res of results) {
@@ -181,6 +191,7 @@ export class DownloadManager extends EventEmitter {
 									p.entries.forEach((e: any) => {
 										entries.push({
 											id: e.id || "",
+											original_url: p.original_url || p.webpage_url || "",
 											url: e.url || e.webpage_url || p.webpage_url || p.original_url || "",
 											title: e.title || "Unknown",
 											thumbnail: e.thumbnail || (e.thumbnails && e.thumbnails.length > 0 ? e.thumbnails[e.thumbnails.length - 1].url : ""),
@@ -191,6 +202,7 @@ export class DownloadManager extends EventEmitter {
 								} else {
 									entries.push({
 										id: p.id || "",
+										original_url: p.original_url || p.webpage_url || "",
 										url: p.webpage_url || p.original_url || "",
 										title: p.title || "Unknown",
 										thumbnail: p.thumbnail || (p.thumbnails && p.thumbnails.length > 0 ? p.thumbnails[p.thumbnails.length - 1].url : ""),
@@ -201,6 +213,34 @@ export class DownloadManager extends EventEmitter {
 							} catch (parseErr) {
 								console.warn("Failed to parse a line of yt-dlp output:", parseErr);
 							}
+						}
+
+						if (Array.isArray(url)) {
+							const mappedEntries: any[] = [];
+							for (const reqUrl of url) {
+								let match = entries.find(e => e.original_url === reqUrl || e.url === reqUrl);
+								if (!match) {
+									// import { extractVideoId } from "./utils" is already there
+									// we can try matching by ID if the URL changed due to redirects
+									const reqId = extractVideoId(reqUrl);
+									if (reqId) match = entries.find(e => extractVideoId(e.url) === reqId);
+								}
+
+								if (match) {
+									mappedEntries.push(match);
+								} else {
+									mappedEntries.push({
+										id: "error",
+										url: reqUrl,
+										title: "[Ошибка] Недоступно или приватно",
+										thumbnail: "",
+										duration: 0,
+										channel: "Ошибка"
+									});
+								}
+							}
+							entries.length = 0;
+							entries.push(...mappedEntries);
 						}
 
 						const videoInfo: VideoInfo = {
@@ -345,6 +385,10 @@ export class DownloadManager extends EventEmitter {
 
 			if (settings.impersonateBrowser) {
 				args.push("--impersonate", "chrome");
+			}
+
+			if (settings.restrictFilenames) {
+				args.push("--restrict-filenames");
 			}
 
 			let filename = options.filename
@@ -580,6 +624,10 @@ export class DownloadManager extends EventEmitter {
 						args.push("--impersonate", "chrome");
 					}
 
+					if (settings.restrictFilenames) {
+						args.push("--restrict-filenames");
+					}
+
 					let filename = options.filename ? sanitizeFilename(options.filename) : "%(title)s.%(ext)s";
 					filename = "%(playlist_index)s - " + filename;
 						
@@ -777,7 +825,7 @@ export class DownloadManager extends EventEmitter {
 								filename: lastFilename,
 								playlistIndex: itemIndex + 1,
 								playlistCount: itemsCount,
-								itemError: false
+								itemError: true
 							});
 							itemResolve(); // Don't reject — continue pipeline
 						}
@@ -787,6 +835,8 @@ export class DownloadManager extends EventEmitter {
 
 			const runPipeline = async () => {
 				try {
+					const settings = this.settingsGetter();
+
 					for (let i = 0; i < itemsCount; i++) {
 						if (!this._isDownloading) break;
 						await runItem(i, isVirtual ? 0 : options.playlistItems![i]);

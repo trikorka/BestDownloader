@@ -502,6 +502,9 @@ export class DownloadView extends ItemView {
 		let paramsEl: HTMLElement;
 		let playlistCountEl: HTMLElement | undefined;
 
+		const failedPlaylistIndices = new Set<number>();
+		const sortedIndices = this.videoInfo.isPlaylist ? Array.from(this.selectedPlaylistIndices).sort((a,b) => a - b) : [];
+
 		// Playlist or Single Item Cards (vertical list)
 		const playlistCards = new Map<number, {
 			container: HTMLElement,
@@ -532,7 +535,6 @@ export class DownloadView extends ItemView {
 
 			const cardsContainer = entriesList.createDiv({ cls: "bd-playlist-cards-container" });
 			
-			const sortedIndices = Array.from(this.selectedPlaylistIndices).sort((a,b) => a - b);
 			for (let i = 0; i < sortedIndices.length; i++) {
 				const entryIndex = sortedIndices[i] - 1;
 				const entry = this.videoInfo.entries[entryIndex];
@@ -621,11 +623,16 @@ export class DownloadView extends ItemView {
 
 		// Cancel button
 		const btnRow = this.downloadingContainer.createDiv({ cls: "bd-btn-row" });
+		const retryBtn = btnRow.createEl("button", {
+			text: "Повторить с ошибками",
+			cls: "bd-cancel-btn mod-warning",
+		});
+		retryBtn.hide();
+
 		const cancelBtn = btnRow.createEl("button", {
 			text: "Отменить",
 			cls: "bd-cancel-btn mod-warning",
 		});
-
 
 		// Listen for progress
 		const onProgress = (progress: DownloadProgress) => {
@@ -727,14 +734,15 @@ export class DownloadView extends ItemView {
 				}
 				case "item_finished": {
 					// When a single item in the pipeline fully finishes
+					const idx = progress.playlistIndex || 1;
 					if (progress.itemError) {
 						updateCard(-1, "bd-text-red", "alert-circle"); // Show error icon for failed items
+						failedPlaylistIndices.add(idx);
 					} else {
 						updateCard(-1, "bd-text-accent", "check-circle"); // -1 to hide progress bar
 					}
 					
 					// Make sure we remove active state from it so it looks complete
-					const idx = progress.playlistIndex || 1;
 					if (playlistCards.has(idx)) {
 						playlistCards.get(idx)!.container.removeClass("bd-card-active");
 					}
@@ -753,13 +761,20 @@ export class DownloadView extends ItemView {
 						updateCard(-1, "bd-text-accent", "check-circle");
 					} else {
 						// Mark all cards as complete if it's a global finish
-						playlistCards.forEach(c => {
-							c.statusIcon.className = "bd-download-status-icon bd-text-accent";
-							c.statusIcon.empty();
-							setIcon(c.statusIcon, "check-circle");
-							c.progressBar.hide();
-							c.container.removeClass("bd-card-active");
+						playlistCards.forEach((c, idx) => {
+							if (!failedPlaylistIndices.has(idx)) {
+								c.statusIcon.className = "bd-download-status-icon bd-text-accent";
+								c.statusIcon.empty();
+								setIcon(c.statusIcon, "check-circle");
+								c.progressBar.hide();
+								c.container.removeClass("bd-card-active");
+							}
 						});
+					}
+
+					if (failedPlaylistIndices.size > 0 && this.videoInfo.isPlaylist && this.videoInfo.entries) {
+						retryBtn.style.setProperty("display", "flex", "important");
+						retryBtn.style.setProperty("visibility", "visible", "important");
 					}
 					break;
 				case "error": {
@@ -776,6 +791,42 @@ export class DownloadView extends ItemView {
 		};
 
 		this.downloadManager.on("progress", onProgress);
+
+		retryBtn.addEventListener("click", () => {
+			if (!this.videoInfo || !this.videoInfo.entries) return;
+
+			const failedEntries = Array.from(failedPlaylistIndices)
+				.map(idx => {
+					const originalIndex = sortedIndices[idx - 1] - 1;
+					return this.videoInfo!.entries![originalIndex];
+				})
+				.filter(entry => !!entry);
+
+			if (failedEntries.length === 0) return;
+
+			this.videoInfo = {
+				id: "virtual-playlist",
+				title: "Ошибки: " + this.videoInfo.title,
+				description: "Видео, которые не удалось скачать",
+				thumbnail: failedEntries.length > 0 ? failedEntries[0].thumbnail : "",
+				duration: 0,
+				channel: "Смешанные",
+				upload_date: "",
+				view_count: 0,
+				like_count: 0,
+				formats: [],
+				webpage_url: failedEntries.length > 0 ? failedEntries[0].url : this.videoInfo.webpage_url,
+				isPlaylist: true,
+				isVirtualPlaylist: true,
+				playlistCount: failedEntries.length,
+				entries: failedEntries
+			};
+			
+			this.selectedPlaylistIndices.clear();
+			this.downloadingContainer.hide();
+			this.selectionContainer.show();
+			this.renderVideoInfo();
+		});
 
 		cancelBtn.addEventListener("click", () => {
 			if (this.downloadManager.isDownloading) {

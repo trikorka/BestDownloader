@@ -264,6 +264,18 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName("Дополнительно").setHeading();
 
 		new Setting(containerEl)
+			.setName("Упрощенные имена файлов")
+			.setDesc("Заменяет пробелы на нижние подчеркивания (_) и удаляет спецсимволы (использует опцию --restrict-filenames)")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.restrictFilenames)
+					.onChange(async (value) => {
+						this.plugin.settings.restrictFilenames = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
 			.setName("Имитация браузера")
 			.setDesc("Включите, если появляется ошибка загрузки")
 			.addToggle((toggle) =>
@@ -285,6 +297,33 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 						this.plugin.settings.concurrentPlaylist = value;
 						await this.plugin.saveSettings();
 					})
+			);
+
+		new Setting(containerEl)
+			.setName("Лимит процессов для чтения ссылок")
+			.setDesc("Сколько параллельных процессов yt-dlp можно запустить одновременно для чтения метаданных (превью).")
+			.addText(text => text
+				.setPlaceholder("10")
+				.setValue(String(this.plugin.settings.metadataProcessLimit))
+				.onChange(async (value) => {
+					let num = parseInt(value);
+					if (isNaN(num) || num < 1) num = 1;
+					this.plugin.settings.metadataProcessLimit = num;
+					await this.plugin.saveSettings();
+				})
+			);
+
+		new Setting(containerEl)
+			.setName("Размер чанка для ссылок")
+			.setDesc("По сколько ссылок проверять за раз при чтении массивов ссылок (от 1 до 20). Большой размер ускоряет чтение, но может вызвать подозрения у сервисов.")
+			.addSlider(slider => slider
+				.setLimits(1, 20, 1)
+				.setValue(this.plugin.settings.metadataChunkSize)
+				.setDynamicTooltip()
+				.onChange(async (value) => {
+					this.plugin.settings.metadataChunkSize = value;
+					await this.plugin.saveSettings();
+				})
 			);
 	}
 }
