@@ -28,15 +28,16 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 			disclaimerBlock.createEl("p", { text: "Автор плагина не несет ответственности за скачанный контент или блокировки со стороны сервисов." });
 			
 			new Setting(containerEl)
-				.addButton(btn => btn
-					.setButtonText("Я согласен")
-					.setDestructive()
+				.addButton(btn => {
+					btn.setButtonText("Я согласен")
 					.onClick(async () => {
 						this.plugin.settings.hasAcceptedDisclaimer = true;
 						await this.plugin.saveSettings();
 						this.display(); // Re-render settings
-					})
-				);
+					});
+					btn.buttonEl.addClass("mod-warning");
+					return btn;
+				});
 			return;
 		}
 
