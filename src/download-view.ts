@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Notice, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, setIcon, activeDocument } from "obsidian";
 import type BestDownloaderPlugin from "./main";
 import { DownloadManager } from "./download-manager";
 import {
@@ -603,7 +603,7 @@ export class DownloadView extends ItemView {
 			statusMsg = statusText.createSpan();
 
 			// We don't strictly need a card progress bar since the global one is inside the card
-			const dummyProgress = document.createElement("progress");
+			const dummyProgress = activeDocument.createElement("progress");
 			playlistCards.set(1, {
 				container: card,
 				progressBar: dummyProgress,

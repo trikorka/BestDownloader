@@ -1,10 +1,10 @@
-import { Plugin, Notice, FileSystemAdapter, requestUrl } from "obsidian";
+import { Plugin, FileSystemAdapter } from "obsidian";
 import { PluginSettings, DEFAULT_SETTINGS } from "./types";
 import { DownloadManager } from "./download-manager";
 import { DownloadView, VIEW_TYPE_DOWNLOADER } from "./download-view";
 import { BestDownloaderSettingTab } from "./settings";
 import { OnboardingModal } from "./onboarding-modal";
-import { formatDuration, sanitizeFilename } from "./utils";
+
 import * as path from "path";
 
 export default class BestDownloaderPlugin extends Plugin {

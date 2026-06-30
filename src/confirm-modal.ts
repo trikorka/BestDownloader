@@ -18,7 +18,7 @@ export class ConfirmModal extends Modal {
 		
 		contentEl.createEl("h2", { text: this.title });
 		
-		const msgEl = contentEl.createEl("p", { text: this.message, cls: "bd-pre-wrap" });
+		contentEl.createEl("p", { text: this.message, cls: "bd-pre-wrap" });
 
 		const btnContainer = contentEl.createDiv({ cls: "bd-confirm-btns" });
 

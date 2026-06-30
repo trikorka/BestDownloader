@@ -22,9 +22,7 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 				.setName("Отказ от ответственности")
 				.setHeading();
 				
-			const disclaimerBlock = containerEl.createDiv();
-			disclaimerBlock.style.marginBottom = "var(--size-4-4)";
-			disclaimerBlock.style.color = "var(--text-muted)";
+			const disclaimerBlock = containerEl.createDiv({ cls: "bd-disclaimer-text" });
 			disclaimerBlock.createEl("p", { text: "Плагин предназначен исключительно для добросовестного использования. Загрузка материалов, защищенных авторским правом, без разрешения правообладателя может нарушать закон." });
 			disclaimerBlock.createEl("p", { text: "Пользователь несет полную ответственность за любые действия, совершаемые с помощью данного плагина, включая соблюдение условий использования сторонних сервисов." });
 			disclaimerBlock.createEl("p", { text: "Автор плагина не несет ответственности за скачанный контент или блокировки со стороны сервисов." });
@@ -32,7 +30,7 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 			new Setting(containerEl)
 				.addButton(btn => btn
 					.setButtonText("Я согласен")
-					.setWarning()
+					.setDestructive()
 					.onClick(async () => {
 						this.plugin.settings.hasAcceptedDisclaimer = true;
 						await this.plugin.saveSettings();
@@ -98,8 +96,9 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 						this.app,
 						"Предупреждение о безопасности",
 						"Вы собираетесь скачать исполняемые файлы (yt-dlp и ffmpeg) со сторонних серверов (GitHub).\n\nЗагрузка и запуск бинарных файлов из интернета всегда несет определенные риски безопасности. Автор плагина не несет ответственности за любой возможный ущерб.\n\nВы делаете это на свой страх и риск. Продолжить?",
-						async () => {
-							btn.setDisabled(true);
+						() => {
+							void (async () => {
+								btn.setDisabled(true);
 							
 							// Create binDir if not exists
 							if (!fs.existsSync(binDir)) {
@@ -128,6 +127,7 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 									}
 								}, 3000);
 							}
+							})();
 						}
 					).open();
 				});

@@ -725,8 +725,8 @@
 	height: var(--icon-size);
 }
 
-.bd-text-accent {
-	color: var(--interactive-accent) !important;
+span.bd-text-accent {
+	color: var(--interactive-accent);
 }
 
 .bd-status-count {
@@ -911,6 +911,11 @@ button.mod-cta.bd-success-btn {
 	color: var(--text-error);
 }
 
+.bd-disclaimer-text {
+	margin-bottom: var(--size-4-4);
+	color: var(--text-muted);
+}
+
 /* --- Playlist Cards (Vertical List) --- */
 .bd-media-item.bd-card-active {
 	background-color: var(--background-modifier-hover);
@@ -947,8 +952,7 @@ button.mod-cta.bd-success-btn {
 	border-radius: 2px;
 }
 
-/* Colors for specific status */
-.bd-text-blue { color: var(--color-blue) !important; }
-.bd-text-yellow { color: var(--color-yellow) !important; }
-.bd-text-green { color: var(--color-green) !important; }
-.bd-text-red { color: var(--color-red) !important; }
+span.bd-text-blue { color: var(--color-blue); }
+span.bd-text-yellow { color: var(--color-yellow); }
+span.bd-text-green { color: var(--color-green); }
+span.bd-text-red { color: var(--color-red); }

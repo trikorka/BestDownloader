@@ -420,7 +420,7 @@ export class DownloadManager extends EventEmitter {
 
 		let lastFilename = "";
 		let hasError = false;
-		let playlistProgressState: number[] = new Array(items.length).fill(0);
+		let playlistProgressState: number[] = Array.from({ length: items.length }, () => 0);
 
 		return new Promise((resolve, reject) => {
 			const runItem = async (itemIndex: number, currentItemNumber: number) => {
@@ -628,18 +628,18 @@ export class DownloadManager extends EventEmitter {
 								resolve(lastFilename);
 							}
 						} else {
-							setTimeout(waitForProcesses, 500);
+							window.setTimeout(waitForProcesses, 500);
 						}
 					};
 					waitForProcesses();
 				} catch (err) {
 					this._isDownloading = false;
-					this.emit("error", (err as Error).message);
-					reject(err);
+					this.emit("error", err instanceof Error ? err.message : String(err));
+					reject(err instanceof Error ? err : new Error(String(err)));
 				}
 			};
 
-			runPipeline();
+			void runPipeline();
 		});
 	}
 }
