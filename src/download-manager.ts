@@ -43,7 +43,7 @@ interface YtDlpRawEntry {
 export class DownloadManager extends EventEmitter {
 	private pluginDir: string;
 	private settingsGetter: () => import("./types").PluginSettings;
-	private currentProcess: ReturnType<typeof spawn> | null = null;
+	private activeProcesses: Set<ReturnType<typeof spawn>> = new Set();
 	private _isDownloading = false;
 	lastVideoInfo: import("./types").VideoInfo | null = null;
 
@@ -177,17 +177,16 @@ export class DownloadManager extends EventEmitter {
 	 * Download video or audio
 	 */
 	async download(options: DownloadOptions): Promise<string> {
-		if (this._isDownloading) {
-			throw new Error("A download is already in progress");
-		}
-
 		this._isDownloading = true;
 		this.emit("start", options);
+
+		if (options.isPlaylist && options.playlistItems && options.playlistItems.length > 1) {
+			return this.downloadPlaylistPipeline(options);
+		}
 
 		return new Promise((resolve, reject) => {
 			this._isDownloading = true;
 			this.emit("status", "Инициализация...");
-
 
 			const settings = this.settingsGetter();
 			
@@ -204,9 +203,9 @@ export class DownloadManager extends EventEmitter {
 				"--newline",
 				"--no-warnings",
 				"--ffmpeg-location",
-				ffmpegPath, // Let yt-dlp determine how to use the ffmpeg path or command
+				ffmpegPath,
 			];
-			
+
 			if (!options.isPlaylist) {
 				args.push("--no-playlist");
 			} else {
@@ -220,7 +219,6 @@ export class DownloadManager extends EventEmitter {
 				args.push("--impersonate", "chrome");
 			}
 
-			// Output template
 			let filename = options.filename
 				? sanitizeFilename(options.filename)
 				: "%(title)s.%(ext)s";
@@ -232,21 +230,37 @@ export class DownloadManager extends EventEmitter {
 			const outputTemplate = path.join(options.outputPath, filename);
 			args.push("-o", outputTemplate);
 
+			const thumbnailEnabled = this.settingsGetter().downloadThumbnail;
+			if (thumbnailEnabled && options.thumbnailPath) {
+				if (!fs.existsSync(options.thumbnailPath)) {
+					fs.mkdirSync(options.thumbnailPath, { recursive: true });
+				}
+				args.push("--write-thumbnail");
+				
+				const format = this.settingsGetter().thumbnailFormat;
+				if (format === "png") {
+					args.push("--convert-thumbnails", "png");
+				} else if (format === "jpg") {
+					args.push("--convert-thumbnails", "jpg");
+				}
+				
+				const thumbTemplate = path.join(options.thumbnailPath, filename);
+				args.push("-o", `thumbnail:${thumbTemplate}`);
+			}
+
 			args.push("--postprocessor-args", "ffmpeg:-threads 0");
 
 			if (options.type === "audio") {
-				// Audio-only download
 				let preferExt = "";
 				if (options.audioFormat === "m4a") preferExt = "[ext=m4a]";
 				else if (options.audioFormat === "opus") preferExt = "[ext=webm]";
 
-				args.push("-f", `bestaudio${preferExt}/bestaudio/best`); // Prefer requested native format
+				args.push("-f", `bestaudio${preferExt}/bestaudio/best`);
 				args.push("-x");
 				
 				args.push("--audio-format", options.audioFormat);
-				args.push("--audio-quality", "0"); // Best quality
+				args.push("--audio-quality", "0");
 			} else {
-				// Video download
 				const quality = options.videoQuality === "best"
 					? ""
 					: `[height<=${options.videoQuality}]`;
@@ -279,7 +293,7 @@ export class DownloadManager extends EventEmitter {
 			args.push(options.url);
 
 			const proc = spawn(ytDlpPath, args);
-			this.currentProcess = proc;
+			this.activeProcesses.add(proc);
 
 			let lastFilename = "";
 			let stderr = "";
@@ -291,14 +305,12 @@ export class DownloadManager extends EventEmitter {
 				for (const line of lines) {
 					if (!line.trim()) continue;
 
-					// Check for playlist progress
 					const playlistMatch = line.match(/\[download\] Downloading video (\d+) of (\d+)/);
 					if (playlistMatch) {
 						currentPlaylistIndex = parseInt(playlistMatch[1], 10);
 						totalPlaylistCount = parseInt(playlistMatch[2], 10);
 					}
 
-					// Check for destination filename
 					const destMatch = line.match(
 						/\[(?:download|Merger|ExtractAudio)\].*?(?:Destination|Merging formats into|Converting).*?"?([^"\n]+)"?/
 					);
@@ -306,7 +318,6 @@ export class DownloadManager extends EventEmitter {
 						lastFilename = destMatch[1].trim().replace(/^"|"$/g, "");
 					}
 
-					// Also capture simple destination lines
 					const simpleDestMatch = line.match(
 						/\[download\] Destination: (.+)/
 					);
@@ -314,7 +325,6 @@ export class DownloadManager extends EventEmitter {
 						lastFilename = simpleDestMatch[1].trim();
 					}
 
-					// Check for "has already been downloaded"
 					const alreadyMatch = line.match(
 						/\[download\] (.+) has already been downloaded/
 					);
@@ -339,8 +349,10 @@ export class DownloadManager extends EventEmitter {
 			});
 
 			proc.on("close", (code: number) => {
-				this._isDownloading = false;
-				this.currentProcess = null;
+				this.activeProcesses.delete(proc);
+				if (this.activeProcesses.size === 0) {
+					this._isDownloading = false;
+				}
 
 				if (code === 0) {
 					const result: DownloadProgress = {
@@ -370,8 +382,10 @@ export class DownloadManager extends EventEmitter {
 			});
 
 			proc.on("error", (err: Error) => {
-				this._isDownloading = false;
-				this.currentProcess = null;
+				this.activeProcesses.delete(proc);
+				if (this.activeProcesses.size === 0) {
+					this._isDownloading = false;
+				}
 				this.emit("error", err.message);
 				reject(err);
 			});
@@ -382,8 +396,8 @@ export class DownloadManager extends EventEmitter {
 	 * Cancel the current download
 	 */
 	cancelDownload(): void {
-		if (this.currentProcess) {
-			const pid = this.currentProcess.pid;
+		for (const proc of this.activeProcesses) {
+			const pid = proc.pid;
 			if (pid) {
 				exec(`taskkill /pid ${pid} /T /F`, (err) => {
 					if (err) {
@@ -391,11 +405,241 @@ export class DownloadManager extends EventEmitter {
 					}
 				});
 			} else {
-				this.currentProcess.kill("SIGKILL");
+				proc.kill("SIGKILL");
 			}
-			this._isDownloading = false;
-			this.currentProcess = null;
-			this.emit("cancelled");
 		}
+		this.activeProcesses.clear();
+		this._isDownloading = false;
+		this.emit("cancelled");
+	}
+
+	private async downloadPlaylistPipeline(options: DownloadOptions): Promise<string> {
+		const settings = this.settingsGetter();
+		const items = options.playlistItems || [];
+		if (items.length === 0) return Promise.resolve("");
+
+		let lastFilename = "";
+		let hasError = false;
+		let playlistProgressState: number[] = new Array(items.length).fill(0);
+
+		return new Promise((resolve, reject) => {
+			const runItem = async (itemIndex: number, currentItemNumber: number) => {
+				return new Promise<void>((itemResolve, itemReject) => {
+					const isWin = process.platform === "win32";
+					const ytDlpPath = path.join(this.pluginDir, "bin", isWin ? "yt-dlp.exe" : "yt-dlp");
+					const ffmpegPath = path.join(this.pluginDir, "bin", isWin ? "ffmpeg.exe" : "ffmpeg");
+
+					const args: string[] = [
+						"--newline",
+						"--no-warnings",
+						"--ffmpeg-location",
+						ffmpegPath,
+						"--yes-playlist",
+						"--playlist-items",
+						String(currentItemNumber)
+					];
+
+					if (settings.impersonateBrowser) {
+						args.push("--impersonate", "chrome");
+					}
+
+					let filename = options.filename ? sanitizeFilename(options.filename) : "%(title)s.%(ext)s";
+					filename = "%(playlist_index)s - " + filename;
+						
+					const outputTemplate = path.join(options.outputPath, filename);
+					args.push("-o", outputTemplate);
+
+					if (settings.downloadThumbnail && options.thumbnailPath) {
+						if (!fs.existsSync(options.thumbnailPath)) {
+							fs.mkdirSync(options.thumbnailPath, { recursive: true });
+						}
+						args.push("--write-thumbnail");
+						
+						const format = settings.thumbnailFormat;
+						if (format === "png") args.push("--convert-thumbnails", "png");
+						else if (format === "jpg") args.push("--convert-thumbnails", "jpg");
+						
+						const thumbTemplate = path.join(options.thumbnailPath, filename);
+						args.push("-o", `thumbnail:${thumbTemplate}`);
+					}
+
+					args.push("--postprocessor-args", "ffmpeg:-threads 0");
+
+					if (options.type === "audio") {
+						let preferExt = "";
+						if (options.audioFormat === "m4a") preferExt = "[ext=m4a]";
+						else if (options.audioFormat === "opus") preferExt = "[ext=webm]";
+
+						args.push("-f", `bestaudio${preferExt}/bestaudio/best`);
+						args.push("-x", "--audio-format", options.audioFormat, "--audio-quality", "0");
+					} else {
+						const quality = options.videoQuality === "best" ? "" : `[height<=${options.videoQuality}]`;
+						switch (options.videoFormat) {
+							case "mp4":
+								args.push("-f", `bestvideo${quality}[ext=mp4]+bestaudio[ext=m4a]/bestvideo${quality}+bestaudio/best${quality}[ext=mp4]/best${quality}`);
+								args.push("--merge-output-format", "mp4");
+								break;
+							case "webm":
+								args.push("-f", `bestvideo${quality}[ext=webm]+bestaudio[ext=webm]/bestvideo${quality}+bestaudio/best${quality}`);
+								args.push("--merge-output-format", "webm");
+								break;
+							case "mkv":
+								args.push("-f", `bestvideo${quality}+bestaudio/best${quality}`);
+								args.push("--merge-output-format", "mkv");
+								break;
+						}
+					}
+
+					args.push(options.url);
+
+					const proc = spawn(ytDlpPath, args);
+					this.activeProcesses.add(proc);
+
+					let chunkStderr = "";
+					let networkFinished = false;
+					let seenDestinations = new Set<string>();
+					let currentStage = 0; // 0=video, 1=audio, 2=merge
+
+					proc.stdout.on("data", (data: Buffer) => {
+						const lines = data.toString().split("\n");
+						for (const line of lines) {
+							if (!line.trim()) continue;
+
+							const destMatch = line.match(/\[(?:download|Merger|ExtractAudio)\].*?(?:Destination|Merging formats into|Converting).*?"?([^"\n]+)"?/);
+							let localLastFilename = "";
+							if (destMatch) localLastFilename = destMatch[1].trim().replace(/^"|"$/g, "");
+
+							const simpleDestMatch = line.match(/\[download\] Destination: (.+)/);
+							if (simpleDestMatch) localLastFilename = simpleDestMatch[1].trim();
+
+							const alreadyMatch = line.match(/\[download\] (.+) has already been downloaded/);
+							if (alreadyMatch) localLastFilename = alreadyMatch[1].trim();
+
+							if (localLastFilename) {
+								lastFilename = localLastFilename;
+								if (!seenDestinations.has(localLastFilename)) {
+									seenDestinations.add(localLastFilename);
+									if (seenDestinations.size === 1) currentStage = 0;
+									else if (seenDestinations.size >= 2) currentStage = 1;
+								}
+							}
+
+							const progress = parseProgress(line);
+							if (progress) {
+								progress.filename = localLastFilename || lastFilename;
+								
+								if (progress.status === "merging" || progress.status === "converting") {
+									currentStage = 2;
+								}
+								
+								let cumulativeItemPercent = 0;
+								if (currentStage === 0) cumulativeItemPercent = progress.percent * 0.7;
+								else if (currentStage === 1) cumulativeItemPercent = 70 + (progress.percent * 0.2);
+								else if (currentStage === 2) cumulativeItemPercent = 90;
+								
+								playlistProgressState[itemIndex] = cumulativeItemPercent;
+								const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
+								
+								const aggregatedProgress: DownloadProgress = {
+									...progress,
+									percent: overallPercent,
+									itemPercent: cumulativeItemPercent,
+									playlistIndex: itemIndex + 1,
+									playlistCount: items.length
+								};
+								
+								this.emit("progress", aggregatedProgress);
+
+								if (!networkFinished && currentStage === 2) {
+									if (settings.concurrentPlaylist) {
+										networkFinished = true;
+										itemResolve();
+									}
+								}
+							}
+						}
+					});
+
+					proc.stderr.on("data", (data: Buffer) => {
+						chunkStderr += data.toString();
+					});
+
+					proc.on("close", (code: number) => {
+						this.activeProcesses.delete(proc);
+						
+						if (code === 0) {
+							playlistProgressState[itemIndex] = 100;
+							const overallPercent = playlistProgressState.reduce((a, b) => a + b, 0) / items.length;
+							// Process finished completely! Let's notify the UI so it can update the card.
+							const itemFinishedProgress: DownloadProgress = {
+								percent: overallPercent,
+								totalSize: "—",
+								speed: "—",
+								eta: "—",
+								status: "item_finished",
+								playlistIndex: itemIndex + 1,
+								playlistCount: items.length
+							};
+							this.emit("progress", itemFinishedProgress);
+						}
+
+						if (!networkFinished) {
+							networkFinished = true;
+							if (code === 0) itemResolve();
+							else {
+								hasError = true;
+								itemReject(new Error(`yt-dlp завершился с кодом ${code}: ${chunkStderr.trim()}`));
+							}
+						}
+					});
+
+					proc.on("error", (err: Error) => {
+						this.activeProcesses.delete(proc);
+						if (!networkFinished) {
+							networkFinished = true;
+							hasError = true;
+							itemReject(err);
+						}
+					});
+				});
+			};
+
+			const runPipeline = async () => {
+				try {
+					for (let i = 0; i < items.length; i++) {
+						if (!this._isDownloading) break;
+						await runItem(i, items[i]);
+					}
+					
+					const waitForProcesses = () => {
+						if (this.activeProcesses.size === 0) {
+							this._isDownloading = false;
+							if (!hasError) {
+								const result: DownloadProgress = {
+									percent: 100,
+									totalSize: "—",
+									speed: "—",
+									eta: "0:00",
+									status: "finished",
+									filename: lastFilename,
+								};
+								this.emit("progress", result);
+								this.emit("complete", lastFilename);
+								resolve(lastFilename);
+							}
+						} else {
+							setTimeout(waitForProcesses, 500);
+						}
+					};
+					waitForProcesses();
+				} catch (err) {
+					this._isDownloading = false;
+					this.emit("error", (err as Error).message);
+					reject(err);
+				}
+			};
+
+			runPipeline();
+		});
 	}
 }

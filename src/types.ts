@@ -3,11 +3,13 @@ export interface PluginSettings {
 	defaultVideoFormat: VideoFormat;
 	defaultVideoQuality: VideoQuality;
 	defaultAudioFormat: AudioFormat;
-	createNote: boolean;
-	noteTemplate: string;
 	impersonateBrowser: boolean;
 	hasCompletedOnboarding: boolean;
 	hasAcceptedDisclaimer: boolean;
+	downloadThumbnail: boolean;
+	thumbnailPath: string;
+	thumbnailFormat: ThumbnailFormat;
+	concurrentPlaylist: boolean;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -15,32 +17,20 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	defaultVideoFormat: "mp4",
 	defaultVideoQuality: "1080",
 	defaultAudioFormat: "m4a",
-	createNote: false,
 	impersonateBrowser: false,
 	hasCompletedOnboarding: false,
 	hasAcceptedDisclaimer: false,
-	noteTemplate: `---
-title: "{{title}}"
-channel: "{{channel}}"
-duration: "{{duration}}"
-url: "{{url}}"
-downloaded: "{{date}}"
----
-
-# {{title}}
-
-**Канал:** {{channel}}
-**Длительность:** {{duration}}
-**URL:** [{{url}}]({{url}})
-
-{{description}}
-`,
+	downloadThumbnail: false,
+	thumbnailPath: "thumbnails",
+	thumbnailFormat: "original",
+	concurrentPlaylist: true,
 };
 
 export type VideoFormat = "mp4" | "webm" | "mkv";
 export type AudioFormat = "mp3" | "m4a" | "wav" | "opus";
 export type VideoQuality = "144" | "240" | "360" | "480" | "720" | "1080" | "1440" | "2160" | "best";
 export type DownloadType = "video" | "audio";
+export type ThumbnailFormat = "original" | "png" | "jpg";
 
 export interface VideoInfo {
 	id: string;
@@ -88,6 +78,7 @@ export interface DownloadOptions {
 	videoQuality: VideoQuality;
 	audioFormat: AudioFormat;
 	outputPath: string;
+	thumbnailPath?: string;
 	filename?: string;
 	isPlaylist?: boolean;
 	playlistItems?: number[];
@@ -95,10 +86,11 @@ export interface DownloadOptions {
 
 export interface DownloadProgress {
 	percent: number;
+	itemPercent?: number;
 	totalSize: string;
 	speed: string;
 	eta: string;
-	status: "downloading" | "converting" | "merging" | "finished" | "error";
+	status: "downloading" | "converting" | "merging" | "finished" | "error" | "item_finished";
 	filename?: string;
 	playlistIndex?: number;
 	playlistCount?: number;

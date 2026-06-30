@@ -156,25 +156,3 @@ export function sanitizeFilename(name: string): string {
 export function getPlatform(): "win32" | "darwin" | "linux" {
 	return process.platform as "win32" | "darwin" | "linux";
 }
-
-/**
- * Returns current date in YYYY-MM-DD format
- */
-export function getCurrentDate(): string {
-	const d = new Date();
-	return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`;
-}
-
-/**
- * Replaces template variables in a note template
- */
-export function applyNoteTemplate(
-	template: string,
-	vars: Record<string, string>
-): string {
-	let result = template;
-	for (const [key, value] of Object.entries(vars)) {
-		result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
-	}
-	return result;
-}

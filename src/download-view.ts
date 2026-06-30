@@ -28,6 +28,11 @@ export class DownloadView extends ItemView {
 	private urlInput!: HTMLInputElement;
 	private errorMsg!: HTMLElement;
 	private contentContainer!: HTMLElement;
+	private headerContainer!: HTMLElement;
+	private inputGroupContainer!: HTMLElement;
+	private emptyState!: HTMLElement;
+	private selectionContainer!: HTMLElement;
+	private downloadingContainer!: HTMLElement;
 
 	// State
 	private downloadType: DownloadType = "video";
@@ -109,10 +114,10 @@ export class DownloadView extends ItemView {
 			return;
 		}
 
-		const header = container.createDiv({ cls: "bd-view-header" });
-		header.createEl("h2", { text: "Скачать видео" });
+		this.headerContainer = container.createDiv({ cls: "bd-view-header" });
+		this.headerContainer.createEl("h2", { text: "Скачать видео" });
 		
-		const settingsBtn = header.createEl("button", {
+		const settingsBtn = this.headerContainer.createEl("button", {
 			cls: "clickable-icon",
 			title: "Настройки плагина",
 		});
@@ -126,8 +131,8 @@ export class DownloadView extends ItemView {
 			appWithSetting.setting.openTabById(this.plugin.manifest.id);
 		});
 
-		const inputGroup = container.createDiv({ cls: "bd-input-group" });
-		this.urlInput = inputGroup.createEl("input", {
+		this.inputGroupContainer = container.createDiv({ cls: "bd-input-group" });
+		this.urlInput = this.inputGroupContainer.createEl("input", {
 			type: "text",
 			placeholder: "Ссылка на видео/аудио...",
 			cls: "bd-url-input",
@@ -136,7 +141,19 @@ export class DownloadView extends ItemView {
 		this.errorMsg = container.createDiv({ cls: "bd-error-msg" });
 		this.errorMsg.hide();
 
-		this.contentContainer = container.createDiv({ cls: "bd-content-container bd-flex-col" });
+		this.contentContainer = container.createDiv({ cls: "bd-content-container bd-flex-col bd-fade-in" });
+		
+		// Setup sub-containers
+		this.emptyState = this.contentContainer.createDiv({ cls: "bd-empty-state" });
+		const emptyIcon = this.emptyState.createDiv({ cls: "bd-empty-icon" });
+		setIcon(emptyIcon, "download-cloud");
+		this.emptyState.createDiv({ cls: "bd-empty-text", text: "Вставьте ссылку на видео или плейлист, чтобы начать загрузку" });
+
+		this.selectionContainer = this.contentContainer.createDiv({ cls: "bd-selection-container" });
+		this.selectionContainer.hide();
+
+		this.downloadingContainer = this.contentContainer.createDiv({ cls: "bd-downloading-container" });
+		this.downloadingContainer.hide();
 
 		const triggerFetch = async () => {
 			const url = this.urlInput.value.trim();
@@ -173,6 +190,10 @@ export class DownloadView extends ItemView {
 				this.errorMsg.removeClass("bd-error-loading");
 				this.urlInput.disabled = false;
 				this.urlInput.placeholder = "Ссылка на видео/аудио...";
+				this.emptyState.hide();
+				this.selectionContainer.show();
+				this.selectionContainer.addClass("bd-fade-in");
+				this.downloadingContainer.hide();
 				this.renderVideoInfo();
 			} catch (e) {
 				this.errorMsg.show();
@@ -220,7 +241,7 @@ export class DownloadView extends ItemView {
 	 * Step 2: Video info + download options
 	 */
 	private renderVideoInfo() {
-		this.contentContainer.empty();
+		this.selectionContainer.empty();
 
 		if (!this.videoInfo) return;
 
@@ -230,14 +251,14 @@ export class DownloadView extends ItemView {
 			// Init selections (1-based index)
 			info.entries.forEach((_, i) => this.selectedPlaylistIndices.add(i + 1));
 			
-			const entriesList = this.contentContainer.createDiv({ cls: "bd-playlist-entries" });
+			const entriesList = this.selectionContainer.createDiv({ cls: "bd-playlist-entries" });
 			
 			// Playlist Header Row
 			const headerRow = entriesList.createDiv({ cls: "bd-playlist-header-row" });
 			headerRow.createEl("h3", { text: info.title, cls: "bd-playlist-main-title" });
 			
 			const toggleAllBtn = headerRow.createSpan({ cls: "bd-toggle-all-btn clickable-icon" });
-			
+
 			const updateToggleIcon = () => {
 				toggleAllBtn.empty();
 				if (this.selectedPlaylistIndices.size === info.entries.length && info.entries.length > 0) {
@@ -250,13 +271,14 @@ export class DownloadView extends ItemView {
 			updateToggleIcon();
 			
 			const checkboxes: HTMLInputElement[] = [];
+			const cardsContainer = entriesList.createDiv({ cls: "bd-playlist-cards-container" });
 			
 			info.entries.forEach((entry, idx) => {
 				const itemIndex = idx + 1;
-				const item = entriesList.createDiv({ cls: "bd-playlist-item" });
+				const item = cardsContainer.createDiv({ cls: "bd-media-item bd-clickable-card" });
 				
 				// Checkbox
-				const checkboxContainer = item.createDiv({ cls: "bd-checkbox-container" });
+				const checkboxContainer = item.createDiv({ cls: "bd-media-action" });
 				const checkbox = checkboxContainer.createEl("input", { type: "checkbox" });
 				checkbox.checked = this.selectedPlaylistIndices.has(itemIndex);
 				checkboxes.push(checkbox);
@@ -279,9 +301,9 @@ export class DownloadView extends ItemView {
 					}
 				});
 				
-				const itemThumbContainer = item.createDiv({ cls: "bd-playlist-item-thumb-container" });
+				const itemThumbContainer = item.createDiv({ cls: "bd-media-thumb-container" });
 				if (entry.thumbnail) {
-					const itemThumb = itemThumbContainer.createEl("img", { cls: "bd-playlist-item-thumb" });
+					const itemThumb = itemThumbContainer.createEl("img", { cls: "bd-media-thumb" });
 					itemThumb.src = entry.thumbnail;
 				}
 				if (entry.duration) {
@@ -291,9 +313,9 @@ export class DownloadView extends ItemView {
 					});
 				}
 				
-				const itemMeta = item.createDiv({ cls: "bd-playlist-item-meta" });
-				itemMeta.createEl("h4", { text: entry.title, cls: "bd-playlist-item-title" });
-				itemMeta.createEl("span", { text: entry.channel, cls: "bd-playlist-item-channel" });
+				const itemMeta = item.createDiv({ cls: "bd-media-meta" });
+				itemMeta.createEl("h4", { text: entry.title, cls: "bd-media-title" });
+				itemMeta.createEl("span", { text: entry.channel, cls: "bd-media-channel" });
 			});
 			
 			toggleAllBtn.addEventListener("click", () => {
@@ -311,8 +333,8 @@ export class DownloadView extends ItemView {
 				activeDocument.dispatchEvent(new CustomEvent("bd-playlist-selection-changed"));
 			});
 		} else {
-			// Regular Video card
-			const card = this.contentContainer.createDiv({ cls: "bd-video-card" });
+			// Single Video Card - Large card
+			const card = this.selectionContainer.createDiv({ cls: "bd-video-card" });
 
 			if (info.thumbnail) {
 				const thumbContainer = card.createDiv({ cls: "bd-thumb-container" });
@@ -320,7 +342,6 @@ export class DownloadView extends ItemView {
 					cls: "bd-thumbnail",
 				});
 				thumb.src = info.thumbnail;
-				thumb.alt = info.title;
 
 				if (info.duration) {
 					thumbContainer.createDiv({
@@ -335,13 +356,13 @@ export class DownloadView extends ItemView {
 
 			const details = meta.createDiv({ cls: "bd-video-details" });
 			details.createEl("span", {
-				text: info.channel,
+				text: info.channel || "",
 				cls: "bd-detail bd-channel-detail",
 			});
 		}
 
 		// Options section
-		const optionsSection = this.contentContainer.createDiv({ cls: "bd-section bd-options-section" });
+		const optionsSection = this.selectionContainer.createDiv({ cls: "bd-section bd-options-section" });
 
 		const renderOptions = () => {
 			optionsSection.empty();
@@ -416,9 +437,9 @@ export class DownloadView extends ItemView {
 		renderOptions();
 
 		// Download button
-		const btnRow = this.contentContainer.createDiv({ cls: "bd-btn-row" });
+		const btnRow = this.selectionContainer.createDiv({ cls: "bd-btn-row" });
 		const downloadBtn = btnRow.createEl("button", {
-			cls: "bd-download-btn mod-cta",
+			cls: "mod-cta bd-download-btn",
 		});
 		const dlIcon = downloadBtn.createSpan();
 		setIcon(dlIcon, "download");
@@ -458,62 +479,143 @@ export class DownloadView extends ItemView {
 	 * Step 3: Download progress
 	 */
 	private async startDownload() {
-		this.contentContainer.empty();
+		this.selectionContainer.hide();
+		this.urlInput.disabled = true;
+		
+		this.downloadingContainer.empty();
+		this.downloadingContainer.show();
+		this.downloadingContainer.addClass("bd-fade-in");
 
 		if (!this.videoInfo) return;
 
-		// Mini video card
-		const miniCard = this.contentContainer.createDiv({ cls: "bd-mini-card" });
-		miniCard.createEl("span", {
-			text: this.videoInfo.title,
-			cls: "bd-mini-title",
-		});
-		const formatLabel =
-			this.downloadType === "video"
-				? `${this.videoFormat.toUpperCase()}`
-				: `${this.audioFormat.toUpperCase()}`;
-		miniCard.createEl("span", {
-			text: formatLabel,
-			cls: "bd-mini-format",
-		});
+		let statusMsg: HTMLElement;
+		let statusIcon: HTMLElement;
+		let progressBar: HTMLProgressElement;
+		let paramsEl: HTMLElement;
+		let playlistCountEl: HTMLElement | undefined;
 
-		// Progress section
-		const progressSection = this.contentContainer.createDiv({ cls: "bd-progress-section" });
+		// Playlist or Single Item Cards (vertical list)
+		const playlistCards = new Map<number, {
+			container: HTMLElement,
+			statusText?: HTMLElement, // Will be undefined now
+			progressBar: HTMLProgressElement,
+			statusIcon: HTMLElement
+		}>();
 
-		const statusText = progressSection.createDiv({
-			cls: "bd-progress-status",
-		});
-		
-		const statusIcon = statusText.createSpan({ cls: "bd-status-icon" });
-		const statusMsg = statusText.createSpan({ text: "Начало загрузки..." });
+		if (this.videoInfo.isPlaylist && this.videoInfo.entries && this.selectedPlaylistIndices.size > 0) {
+			const entriesList = this.downloadingContainer.createDiv({ cls: "bd-playlist-entries" });
+			
+			// Playlist Header Row
+			const headerRow = entriesList.createDiv({ cls: "bd-playlist-header-row" });
+			
+			headerRow.createEl("h3", { text: this.videoInfo.title, cls: "bd-playlist-main-title" });
+			
+			const statusWrapper = headerRow.createDiv({ cls: "bd-playlist-status-wrapper" });
+			statusIcon = statusWrapper.createSpan({ cls: "bd-status-icon bd-text-muted" });
+			setIcon(statusIcon, "clock-3");
+			statusMsg = statusWrapper.createSpan();
 
-		const progressBar = progressSection.createEl("progress", {
-			cls: "bd-progress-bar",
-		});
-		progressBar.setAttr("max", "100");
-		progressBar.setAttr("value", "0");
+			paramsEl = headerRow.createEl("span", { text: "— | — | —", cls: "bd-progress-detail bd-playlist-params" });
+			playlistCountEl = headerRow.createSpan({ cls: "bd-status-count bd-playlist-count" });
 
-		const progressDetails = progressSection.createDiv({
-			cls: "bd-progress-details bd-progress-vertical",
-		});
-		const speedEl = progressDetails.createEl("span", {
-			text: "Скорость: —",
-			cls: "bd-progress-detail",
-		});
-		const etaEl = progressDetails.createEl("span", {
-			text: "Осталось: —",
-			cls: "bd-progress-detail",
-		});
-		const sizeEl = progressDetails.createEl("span", {
-			text: "Размер: —",
-			cls: "bd-progress-detail",
-		});
+			progressBar = entriesList.createEl("progress", { cls: "bd-playlist-progress-bar bd-progress-bar" });
+			progressBar.setAttr("max", "100");
+			progressBar.setAttr("value", "0");
+
+			const cardsContainer = entriesList.createDiv({ cls: "bd-playlist-cards-container" });
+			
+			const sortedIndices = Array.from(this.selectedPlaylistIndices).sort((a,b) => a - b);
+			for (let i = 0; i < sortedIndices.length; i++) {
+				const entryIndex = sortedIndices[i] - 1;
+				const entry = this.videoInfo.entries[entryIndex];
+				if (!entry) continue;
+
+				const card = cardsContainer.createDiv({ cls: "bd-media-item" });
+				
+				const thumbContainer = card.createDiv({ cls: "bd-media-thumb-container" });
+				if (entry.thumbnail) {
+					thumbContainer.createEl("img", { cls: "bd-media-thumb", attr: { src: entry.thumbnail } });
+				}
+				if (entry.duration) {
+					thumbContainer.createDiv({
+						cls: "bd-duration-badge bd-duration-small",
+						text: formatDuration(entry.duration),
+					});
+				}
+				
+				const meta = card.createDiv({ cls: "bd-media-meta" });
+				meta.createEl("h4", { cls: "bd-media-title", text: entry.title });
+				meta.createEl("span", { cls: "bd-media-channel", text: entry.channel });
+				
+				const statusContainer = card.createDiv({ cls: "bd-media-action" });
+				const cardStatusIcon = statusContainer.createSpan({ cls: "bd-download-status-icon bd-text-muted" });
+				setIcon(cardStatusIcon, "clock");
+
+				const cardProgress = card.createEl("progress", { cls: "bd-card-progress-bottom", attr: { max: "100", value: "0" } });
+				cardProgress.hide();
+				
+				playlistCards.set(i + 1, {
+					container: card,
+					progressBar: cardProgress,
+					statusIcon: cardStatusIcon
+				});
+			}
+		} else {
+			// Single Video Card - Restore original large card
+			const card = this.downloadingContainer.createDiv({ cls: "bd-video-card" });
+
+			if (this.videoInfo.thumbnail) {
+				const thumbContainer = card.createDiv({ cls: "bd-thumb-container" });
+				const thumb = thumbContainer.createEl("img", {
+					cls: "bd-thumbnail",
+				});
+				thumb.src = this.videoInfo.thumbnail;
+
+				if (this.videoInfo.duration) {
+					thumbContainer.createDiv({
+						cls: "bd-duration-badge",
+						text: formatDuration(this.videoInfo.duration),
+					});
+				}
+			}
+
+			progressBar = card.createEl("progress", { cls: "bd-playlist-progress-bar bd-progress-bar" });
+			progressBar.setAttr("max", "100");
+			progressBar.setAttr("value", "0");
+
+			const meta = card.createDiv({ cls: "bd-video-meta" });
+			meta.createEl("h3", { text: this.videoInfo.title, cls: "bd-video-title" });
+
+			const details = meta.createDiv({ cls: "bd-video-details" });
+			details.createEl("span", {
+				text: this.videoInfo.channel || "",
+				cls: "bd-detail bd-channel-detail",
+			});
+
+			const progressSection = meta.createDiv({ cls: "bd-progress-section" });
+			
+			const progressDetails = progressSection.createDiv({ cls: "bd-progress-details" });
+			paramsEl = progressDetails.createEl("span", { text: "— | — | —", cls: "bd-progress-detail" });
+			
+			const statusText = progressSection.createDiv({ cls: "bd-progress-status" });
+			statusIcon = statusText.createSpan({ cls: "bd-status-icon bd-text-muted" });
+			setIcon(statusIcon, "clock-3");
+			statusMsg = statusText.createSpan();
+
+			// We don't strictly need a card progress bar since the global one is inside the card
+			const dummyProgress = document.createElement("progress");
+			playlistCards.set(1, {
+				container: card,
+				progressBar: dummyProgress,
+				statusIcon: statusIcon
+			});
+		}
 
 		// Cancel button
-		const btnRow = this.contentContainer.createDiv({ cls: "bd-btn-row" });
+		const btnRow = this.downloadingContainer.createDiv({ cls: "bd-btn-row" });
 		const cancelBtn = btnRow.createEl("button", {
 			text: "Отменить",
-			cls: "bd-cancel-btn",
+			cls: "bd-cancel-btn mod-warning",
 		});
 
 
@@ -521,43 +623,114 @@ export class DownloadView extends ItemView {
 		const onProgress = (progress: DownloadProgress) => {
 			progressBar.setAttr("value", progress.percent.toString());
 
+			const updateCard = (percent?: number, colorClass?: string, icon?: string, iconAnim?: string) => {
+				const idx = progress.playlistIndex || 1;
+				if (playlistCards.has(idx)) {
+					const cardElements = playlistCards.get(idx)!;
+					
+					if (colorClass) {
+						cardElements.statusIcon.className = "bd-download-status-icon";
+						cardElements.statusIcon.addClass(colorClass);
+					}
+
+					if (percent !== undefined) {
+						if (percent === -1) {
+							cardElements.progressBar.hide();
+							cardElements.progressBar.removeAttribute("value");
+						} else {
+							cardElements.progressBar.show();
+							cardElements.progressBar.setAttr("value", percent.toString());
+						}
+					}
+
+					if (icon) {
+						cardElements.statusIcon.empty();
+						setIcon(cardElements.statusIcon, icon);
+						if (iconAnim) {
+							(cardElements.statusIcon.firstChild as HTMLElement)?.addClass(iconAnim);
+						}
+					}
+					
+					// Just add the active class, don't remove from others so concurrent downloads both look active
+					cardElements.container.addClass("bd-card-active");
+				}
+			};
+
 			switch (progress.status) {
 				case "downloading": {
 					statusIcon.empty();
-					let msgPrefix = "";
+					let isPlaylistMsg = false;
 					if (progress.playlistIndex && progress.playlistCount) {
-						msgPrefix = `Видео ${progress.playlistIndex} из ${progress.playlistCount}: `;
+						isPlaylistMsg = true;
+						updateCard(progress.itemPercent || progress.percent, "bd-text-accent", "download");
 					}
-					statusMsg.setText(
-						`${msgPrefix}Загрузка... ${progress.percent.toFixed(1)}%`
-					);
-					speedEl.setText(`Скорость: ${progress.speed}`);
-					etaEl.setText(`Осталось: ${progress.eta}`);
-					sizeEl.setText(`Размер: ${progress.totalSize}`);
+					
+					statusMsg.empty();
+					if (isPlaylistMsg && playlistCountEl) {
+						playlistCountEl.setText(`${progress.playlistIndex}/${progress.playlistCount}`);
+					}
+					statusMsg.createSpan({ text: `${progress.percent.toFixed(1)}%`, cls: "bd-status-percent" });
+					
+					paramsEl.setText(`${progress.speed} | ${progress.eta} | ${progress.totalSize}`);
 					break;
 				}
 				case "merging":
-					statusIcon.empty();
-					setIcon(statusIcon, "loader");
-					(statusIcon.firstChild as HTMLElement)?.addClass("bd-spin-anim");
-					statusMsg.setText("Объединение видео и аудио...");
-					progressBar.removeAttribute("value"); // indeterminate state
+				case "converting": {
+					let isPlaylistMsg = false;
+					if (progress.playlistIndex && progress.playlistCount) {
+						isPlaylistMsg = true;
+					}
+
+					if (!isPlaylistMsg) {
+						statusIcon.empty();
+						setIcon(statusIcon, "loader");
+						(statusIcon.firstChild as HTMLElement)?.addClass("bd-spin-anim");
+						statusMsg.empty();
+						progressBar.removeAttribute("value"); // indeterminate state
+					} else {
+						progressBar.setAttr("value", progress.percent.toString());
+						statusMsg.empty();
+						if (playlistCountEl) {
+							playlistCountEl.setText(`${progress.playlistIndex}/${progress.playlistCount}`);
+						}
+						statusMsg.createSpan({ text: `${progress.percent.toFixed(1)}%`, cls: "bd-status-percent" });
+					}
+					
+					updateCard(undefined, "bd-text-accent", "loader", "bd-spin-anim");
 					break;
-				case "converting":
-					statusIcon.empty();
-					setIcon(statusIcon, "loader");
-					(statusIcon.firstChild as HTMLElement)?.addClass("bd-spin-anim");
-					statusMsg.setText("Конвертация...");
-					progressBar.removeAttribute("value"); // indeterminate state
+				}
+				case "item_finished": {
+					// When a single item in the pipeline fully finishes
+					updateCard(-1, "bd-text-accent", "check-circle"); // -1 to hide progress bar
+					
+					// Make sure we remove active state from it so it looks complete
+					const idx = progress.playlistIndex || 1;
+					if (playlistCards.has(idx)) {
+						playlistCards.get(idx)!.container.removeClass("bd-card-active");
+					}
 					break;
+				}
 				case "finished":
 					statusIcon.empty();
+					statusIcon.className = "bd-status-icon bd-text-accent";
 					setIcon(statusIcon, "check-circle");
-					(statusIcon.firstChild as HTMLElement)?.addClass("bd-icon-success");
-					statusMsg.setText("Успешно!");
+					statusMsg.empty();
 					progressBar.setAttr("value", "100");
 					cancelBtn.setText("Скачать другое");
+					cancelBtn.removeClass("mod-warning");
 					cancelBtn.addClass("mod-cta");
+					if (progress.playlistIndex && playlistCards.has(progress.playlistIndex)) {
+						updateCard(-1, "bd-text-accent", "check-circle");
+					} else {
+						// Mark all cards as complete if it's a global finish
+						playlistCards.forEach(c => {
+							c.statusIcon.className = "bd-download-status-icon bd-text-accent";
+							c.statusIcon.empty();
+							setIcon(c.statusIcon, "check-circle");
+							c.progressBar.hide();
+							c.container.removeClass("bd-card-active");
+						});
+					}
 					break;
 				case "error": {
 					statusIcon.empty();
@@ -566,6 +739,7 @@ export class DownloadView extends ItemView {
 					statusMsg.setText("Ошибка");
 					progressBar.addClass("bd-progress-error");
 					cancelBtn.setText("Назад");
+					updateCard(undefined, "bd-text-red", "alert-circle");
 					break;
 				}
 			}
@@ -576,17 +750,19 @@ export class DownloadView extends ItemView {
 		cancelBtn.addEventListener("click", () => {
 			if (this.downloadManager.isDownloading) {
 				this.downloadManager.cancelDownload();
-				statusIcon.empty();
-				statusMsg.setText("Отменено");
-				progressBar.addClass("bd-progress-error");
 				cancelBtn.setText("Скачать другое");
+				cancelBtn.removeClass("mod-warning");
+				cancelBtn.addClass("mod-cta");
 			} else {
-				// Reset UI to start
-				this.contentContainer.empty();
+				// Clicked "Download Another" or "Back" -> Reset View entirely
 				this.urlInput.value = "";
 				this.urlInput.disabled = false;
-				this.urlInput.placeholder = "Ссылка на видео/аудио...";
+				this.downloadingContainer.hide();
+				this.selectionContainer.hide();
+				this.emptyState.show();
+				this.emptyState.addClass("bd-fade-in");
 				this.urlInput.focus();
+				this.downloadManager.removeAllListeners("progress");
 			}
 		});
 
@@ -600,6 +776,7 @@ export class DownloadView extends ItemView {
 			videoQuality: this.videoQuality,
 			audioFormat: this.audioFormat,
 			outputPath: outputPath,
+			thumbnailPath: path.join(this.vaultPath, this.plugin.settings.thumbnailPath),
 			isPlaylist: this.videoInfo.isPlaylist,
 			playlistItems: this.videoInfo.isPlaylist ? Array.from(this.selectedPlaylistIndices).sort((a,b) => a - b) : undefined,
 		};

@@ -1,4 +1,4 @@
-import { App, Modal, Notice, FileSystemAdapter } from "obsidian";
+import { App, Modal, Notice, FileSystemAdapter, Setting } from "obsidian";
 import BestDownloaderPlugin from "./main";
 import { AutoDownloader } from "./auto-downloader";
 import { ConfirmModal } from "./confirm-modal";
@@ -50,7 +50,6 @@ export class OnboardingModal extends Modal {
 		const featuresList = slide2.createEl("ul");
 		featuresList.createEl("li", { text: "Скачивание в высоком качестве (до 4K)" });
 		featuresList.createEl("li", { text: "Автоматическое извлечение аудио (M4A, MP3, Opus)" });
-		featuresList.createEl("li", { text: "Автоматическое создание заметок к скачанным видео" });
 		this.slides.push(slide2);
 
 		// Slide 3: How to use
@@ -74,12 +73,31 @@ export class OnboardingModal extends Modal {
 		manualList.createEl("li", { text: "Поместите эти файлы в папку bin/ внутри папки плагина в вашем хранилище." });
 		this.slides.push(slide4);
 
-		// Slide 5: Auto-download
+		// Slide 5: Concurrent Playlist
 		const slide5 = createDiv({ cls: "bd-slide" });
-		slide5.createEl("h2", { text: "Автоматическая загрузка" });
-		slide5.createEl("p", { text: "Или плагин может скачать всё сам прямо сейчас! (Около 150 МБ)." });
+		slide5.createEl("h2", { text: "Сверхбыстрая загрузка плейлистов" });
+		slide5.createEl("p", { text: "Плагин поддерживает параллельную фоновую работу. Пока одно видео еще склеивается (процессором), следующее уже начинает скачиваться (из интернета). Это значительно ускоряет загрузку больших плейлистов." });
 		
-		const autoDownloadBtnContainer = slide5.createDiv({ cls: "bd-auto-download-container" });
+		new Setting(slide5)
+			.setName("Параллельная склейка")
+			.setDesc("Рекомендуется для современных ПК. Если при загрузке плейлистов компьютер сильно зависает, отключите эту опцию (перейдет в режим строгой очереди).")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.concurrentPlaylist)
+					.onChange(async (value) => {
+						this.plugin.settings.concurrentPlaylist = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		this.slides.push(slide5);
+
+		// Slide 6: Auto-download
+		const slide6 = createDiv({ cls: "bd-slide" });
+		slide6.createEl("h2", { text: "Автоматическая загрузка" });
+		slide6.createEl("p", { text: "Или плагин может скачать всё сам прямо сейчас! (Около 150 МБ)." });
+		
+		const autoDownloadBtnContainer = slide6.createDiv({ cls: "bd-auto-download-container" });
 		const autoBtn = autoDownloadBtnContainer.createEl("button", { 
 			text: "Скачать",
 			cls: "mod-cta bd-auto-btn"
@@ -125,8 +143,8 @@ export class OnboardingModal extends Modal {
 			).open();
 		});
 
-		slide5.createEl("p", { text: "Вы всегда сможете скачать их позже в настройках плагина.", cls: "bd-muted-text" });
-		this.slides.push(slide5);
+		slide6.createEl("p", { text: "Вы всегда сможете скачать их позже в настройках плагина.", cls: "bd-muted-text" });
+		this.slides.push(slide6);
 	}
 
 	renderSlide() {

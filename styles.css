@@ -5,34 +5,34 @@
 /* --- Setup Modal --- */
 .bd-setup-modal {
 	max-width: 480px;
-	padding: 8px;
+	padding: var(--size-4-4);
 }
 
 .bd-setup-header h2 {
-	margin: 0 0 8px 0;
-	font-size: 1.4em;
+	margin: 0 0 var(--size-4-2) 0;
+	font-size: var(--font-ui-large);
 }
 
 .bd-setup-desc {
 	color: var(--text-muted);
-	font-size: 0.9em;
-	margin-bottom: 16px;
-	line-height: 1.5;
+	font-size: var(--font-ui-small);
+	margin-bottom: var(--size-4-4);
+	line-height: var(--line-height-normal);
 }
 
 .bd-setup-cards {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
-	margin-bottom: 16px;
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-4);
 }
 
 .bd-dep-card {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	padding: 12px 16px;
-	border-radius: 8px;
+	gap: var(--size-4-3);
+	padding: var(--size-4-3) var(--size-4-4);
+	border-radius: var(--radius-m);
 	background: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
 }
@@ -79,25 +79,25 @@
 	width: 100%;
 	height: 8px;
 	background: var(--background-modifier-border);
-	border-radius: 4px;
+	border-radius: var(--radius-s);
 	overflow: hidden;
-	margin: 8px 0;
+	margin: var(--size-4-2) 0;
 }
 
 .bd-progress-bar-inner {
 	height: 100%;
 	width: 0%;
-	background: linear-gradient(90deg, var(--interactive-accent), var(--color-blue));
-	border-radius: 4px;
+	background: var(--interactive-accent);
+	border-radius: var(--radius-s);
 	transition: width 0.3s ease;
 }
 
 .bd-progress-bar-inner.bd-progress-done {
-	background: linear-gradient(90deg, var(--color-green), #2ecc71);
+	background: var(--interactive-success);
 }
 
 .bd-progress-bar-inner.bd-progress-error {
-	background: linear-gradient(90deg, var(--color-red), #e74c3c);
+	background: var(--background-modifier-error);
 }
 
 .bd-progress-pulse {
@@ -108,14 +108,11 @@
 .bd-setup-btn-container {
 	display: flex;
 	justify-content: flex-end;
-	margin-top: 16px;
+	margin-top: var(--size-4-4);
 }
 
 .bd-setup-install-btn {
-	padding: 8px 24px;
-	font-size: 1em;
-	font-weight: 600;
-	border-radius: 8px;
+	font-weight: var(--font-semibold);
 	transition: all 0.2s ease;
 }
 
@@ -125,25 +122,26 @@
 }
 
 .bd-setup-install-btn.bd-btn-done {
-	background: var(--color-green);
+	background: var(--interactive-success);
+	color: var(--text-on-accent);
 }
 
 .bd-setup-progress-container {
-	margin-top: 12px;
+	margin-top: var(--size-4-3);
 }
 
 .bd-setup-progress-label {
-	font-size: 0.85em;
+	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
-	margin-bottom: 4px;
+	margin-bottom: var(--size-4-1);
 }
 
 .bd-setup-error {
-	color: var(--color-red);
-	font-size: 0.9em;
-	margin-top: 12px;
-	padding: 8px 12px;
-	border-radius: 6px;
+	color: var(--text-error);
+	font-size: var(--font-ui-small);
+	margin-top: var(--size-4-3);
+	padding: var(--size-4-2) var(--size-4-3);
+	border-radius: var(--radius-m);
 	background: rgba(var(--color-red-rgb), 0.1);
 }
 
@@ -233,22 +231,61 @@
 .bd-download-btn,
 .bd-cancel-btn {
 	width: 100%;
-	padding: var(--size-4-2);
+}
+
+/* --- Empty State --- */
+.bd-empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	flex: 1;
+	color: var(--text-faint);
+	padding: var(--size-4-8);
+	text-align: center;
+}
+
+.bd-empty-icon {
+	opacity: 0.3;
+	margin-bottom: var(--size-4-4);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.bd-empty-icon svg {
+	width: 64px;
+	height: 64px;
+}
+
+.bd-empty-text {
 	font-size: var(--font-ui-medium);
-	font-weight: var(--font-medium);
-	border-radius: var(--radius-s);
+	max-width: 300px;
+	line-height: var(--line-height-normal);
+}
+
+/* --- Selection / Download Containers --- */
+.bd-selection-container,
+.bd-downloading-container {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
 }
 
 /* --- Video Card & Playlist Title --- */
 .bd-playlist-header-row {
-	display: flex;
-	justify-content: space-between;
+	display: grid;
+	grid-template-columns: 1fr auto;
 	align-items: center;
 	padding: var(--size-4-3) var(--size-4-4);
 	border-bottom: 1px solid var(--background-modifier-border);
+	row-gap: var(--size-4-1);
 }
 
 .bd-playlist-main-title {
+	grid-column: 1;
+	grid-row: 1;
 	margin: 0;
 	font-size: var(--font-ui-large);
 	font-weight: var(--font-semibold);
@@ -275,11 +312,14 @@
 	background-color: var(--background-modifier-hover);
 }
 
+/* --- Media Items & Playlists --- */
 .bd-video-card {
-	border-radius: var(--radius-m);
+	border-radius: var(--radius-l);
 	overflow: hidden;
 	background: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
 }
 
 .bd-thumb-container {
@@ -310,7 +350,7 @@
 }
 
 .bd-video-meta {
-	padding: var(--size-4-3) var(--size-4-4);
+	padding: var(--size-4-4);
 }
 
 .bd-video-title {
@@ -323,59 +363,107 @@
 	overflow: hidden;
 }
 
-.bd-clickable-card {
-	cursor: pointer;
-	transition: background-color 0.15s ease;
-}
-
-.bd-clickable-card:hover {
-	background-color: var(--background-modifier-hover);
-}
-
-.bd-chevron {
-	float: right;
-	color: var(--text-muted);
+.bd-video-details {
 	display: flex;
-	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--size-4-3);
+	margin-bottom: var(--size-4-3);
+}
+
+.bd-detail {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
 }
 
 .bd-playlist-entries {
 	display: flex;
 	flex-direction: column;
-	flex: 0 1 auto;
-	min-height: 0;
-	overflow-y: auto;
-	border-radius: var(--radius-m);
+	border-radius: var(--radius-l);
 	background: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
 	margin-top: var(--size-4-2);
 	margin-bottom: var(--size-4-2);
+	overflow: hidden;
+	flex: 1;
+	min-height: 0;
 }
 
+.bd-playlist-params {
+	grid-column: 1;
+	grid-row: 2;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
 
+.bd-playlist-count {
+	grid-column: 2;
+	grid-row: 2;
+	text-align: right;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
 
-.bd-playlist-item {
+.bd-playlist-status-wrapper {
+	grid-column: 2;
+	grid-row: 1;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: var(--size-4-1);
+	color: var(--text-normal);
+	font-weight: var(--font-medium);
+}
+
+.bd-playlist-progress-bar {
+	border-radius: 0;
+	height: 4px;
+	margin: 0;
+	background: var(--background-modifier-border);
+}
+
+.bd-playlist-cards-container {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	background: var(--background-primary);
+	/* Hide scrollbar */
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
+.bd-playlist-cards-container::-webkit-scrollbar {
+	display: none;
+}
+
+.bd-single-media {
+	flex: 0 0 auto;
+}
+
+.bd-media-item {
 	display: flex;
 	padding: var(--size-4-2) var(--size-4-3);
 	gap: var(--size-4-3);
-	border-radius: 0;
 	transition: background-color 0.15s ease;
-	cursor: var(--cursor);
 	align-items: center;
+	position: relative;
 }
 
-.bd-checkbox-container {
+.bd-clickable-card {
+	cursor: var(--cursor);
+}
+
+.bd-media-item:hover {
+	background-color: var(--background-secondary);
+}
+
+.bd-media-action {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	padding-right: var(--size-4-1);
 }
 
-.bd-playlist-item:hover {
-	background-color: var(--background-modifier-hover);
-}
-
-.bd-playlist-item-thumb-container {
+.bd-media-thumb-container {
 	position: relative;
 	width: 64px;
 	height: 36px;
@@ -384,7 +472,7 @@
 	overflow: hidden;
 }
 
-.bd-playlist-item-thumb {
+.bd-media-thumb {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
@@ -393,6 +481,7 @@
 .bd-duration-small {
 	font-size: 9px;
 	padding: 1px 3px;
+	position: absolute;
 	bottom: 2px;
 	right: 2px;
 	background: rgba(0, 0, 0, 0.8);
@@ -400,31 +489,54 @@
 	border-radius: var(--radius-s);
 }
 
-.bd-playlist-item-meta {
+.bd-media-meta {
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
 	overflow: hidden;
+	flex: 1;
 }
 
-.bd-playlist-item-title {
+.bd-media-title {
 	margin: 0;
 	font-size: var(--font-ui-small);
 	font-weight: var(--font-medium);
-	line-height: 1.3;
+	line-height: var(--line-height-tight);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	color: var(--text-normal);
 }
 
-.bd-playlist-item-channel {
+.bd-media-channel {
 	font-size: 11px;
 	color: var(--text-muted);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	margin-top: 2px;
+}
+
+.bd-card-progress-bottom {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 3px;
+	margin: 0;
+	border-radius: 0;
+	appearance: none;
+	background-color: transparent;
+	border: none;
+}
+
+.bd-card-progress-bottom::-webkit-progress-bar {
+	background-color: transparent;
+}
+
+.bd-card-progress-bottom::-webkit-progress-value {
+	background-color: var(--interactive-accent);
+	transition: width 0.3s ease;
 }
 
 .bd-video-details {
@@ -487,7 +599,7 @@
 	font-weight: var(--font-normal);
 	background: var(--background-modifier-form-field);
 	border: 1px solid var(--background-modifier-border);
-	cursor: pointer;
+	cursor: var(--cursor);
 	color: var(--text-muted);
 	box-shadow: none;
 }
@@ -508,46 +620,20 @@
 	font-size: var(--font-ui-smaller);
 }
 
-/* --- Mini Card (during download) --- */
-.bd-mini-card {
-	display: flex;
-	flex-direction: column;
-	gap: var(--size-4-1);
-	padding: var(--size-4-2) var(--size-4-3);
-	border-radius: var(--radius-m);
-	background: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
-}
-
-.bd-mini-title {
-	font-size: var(--font-ui-medium);
-	font-weight: var(--font-medium);
-	line-height: var(--line-height-tight);
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.bd-mini-format {
-	font-size: var(--font-ui-smaller);
-	padding: 2px var(--size-4-2);
-	border-radius: var(--radius-xl);
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-	font-weight: var(--font-medium);
-	align-self: flex-start;
-}
-
 /* --- Progress Section --- */
 .bd-progress-section {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
 	margin-top: var(--size-4-3);
 }
 
 .bd-progress-status {
 	font-size: var(--font-ui-small);
 	font-weight: var(--font-medium);
-	margin-bottom: var(--size-4-2);
+	margin-bottom: 0;
+	display: flex;
+	align-items: center;
 }
 
 .bd-progress-bar {
@@ -562,6 +648,10 @@
 	transition: width 0.3s ease;
 }
 
+.bd-progress-error::-webkit-progress-value {
+	background-color: var(--background-modifier-error);
+}
+
 .bd-progress-bar::-webkit-progress-bar {
 	background-color: var(--background-modifier-border);
 	border-radius: var(--radius-s);
@@ -569,15 +659,18 @@
 
 .bd-progress-details {
 	display: flex;
-	flex-direction: column;
-	gap: var(--size-4-1);
-	margin-top: var(--size-4-3);
+	flex-wrap: wrap;
+	gap: var(--size-4-3);
+	margin-top: 0;
+	align-items: center;
 }
 
 .bd-progress-detail {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
 	font-variant-numeric: tabular-nums;
+	min-width: 180px;
+	white-space: nowrap;
 }
 
 /* --- Animations --- */
@@ -597,6 +690,15 @@
 	50% {
 		opacity: 0.6;
 	}
+}
+
+@keyframes bd-fade-in {
+	0% { opacity: 0; transform: translateY(4px); }
+	100% { opacity: 1; transform: translateY(0); }
+}
+
+.bd-fade-in {
+	animation: bd-fade-in 0.2s ease-out forwards;
 }
 
 @keyframes bd-spin {
@@ -621,6 +723,21 @@
 .bd-status-icon svg {
 	width: var(--icon-size);
 	height: var(--icon-size);
+}
+
+.bd-text-accent {
+	color: var(--interactive-accent) !important;
+}
+
+.bd-status-count {
+	margin-right: var(--size-4-1);
+}
+
+.bd-status-percent {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: var(--radius-m);
+	padding: 2px var(--size-4-2);
 }
 
 /* --- Inline style replacements --- */
@@ -793,3 +910,45 @@ button.mod-cta.bd-success-btn {
 	margin-top: 0;
 	color: var(--text-error);
 }
+
+/* --- Playlist Cards (Vertical List) --- */
+.bd-media-item.bd-card-active {
+	background-color: var(--background-modifier-hover);
+}
+
+.bd-mt-2 {
+	margin-top: var(--size-4-1);
+}
+
+.bd-download-status-container {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.bd-download-status-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+}
+
+.bd-card-status {
+	font-size: 0.75em;
+	color: var(--text-muted);
+}
+
+.bd-card-progress {
+	width: 100%;
+	height: 4px;
+	border-radius: 2px;
+}
+
+/* Colors for specific status */
+.bd-text-blue { color: var(--color-blue) !important; }
+.bd-text-yellow { color: var(--color-yellow) !important; }
+.bd-text-green { color: var(--color-green) !important; }
+.bd-text-red { color: var(--color-red) !important; }

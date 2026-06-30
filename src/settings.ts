@@ -22,19 +22,23 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 				.setName("Отказ от ответственности")
 				.setHeading();
 				
-			const disclaimerBlock = containerEl.createDiv({ cls: "bd-disclaimer-block" });
+			const disclaimerBlock = containerEl.createDiv();
+			disclaimerBlock.style.marginBottom = "var(--size-4-4)";
+			disclaimerBlock.style.color = "var(--text-muted)";
 			disclaimerBlock.createEl("p", { text: "Плагин предназначен исключительно для добросовестного использования. Загрузка материалов, защищенных авторским правом, без разрешения правообладателя может нарушать закон." });
 			disclaimerBlock.createEl("p", { text: "Пользователь несет полную ответственность за любые действия, совершаемые с помощью данного плагина, включая соблюдение условий использования сторонних сервисов." });
 			disclaimerBlock.createEl("p", { text: "Автор плагина не несет ответственности за скачанный контент или блокировки со стороны сервисов." });
 			
-			const agreeBtn = disclaimerBlock.createEl("button", { text: "Я согласен", cls: "mod-warning bd-mt-15 bd-w-full" });
-			agreeBtn.addEventListener("click", () => {
-				void (async () => {
-					this.plugin.settings.hasAcceptedDisclaimer = true;
-					await this.plugin.saveSettings();
-					this.display(); // Re-render settings
-				})();
-			});
+			new Setting(containerEl)
+				.addButton(btn => btn
+					.setButtonText("Я согласен")
+					.setWarning()
+					.onClick(async () => {
+						this.plugin.settings.hasAcceptedDisclaimer = true;
+						await this.plugin.saveSettings();
+						this.display(); // Re-render settings
+					})
+				);
 			return;
 		}
 
@@ -148,6 +152,51 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 					})
 			);
 
+		new Setting(containerEl)
+			.setName("Скачивать обложку видео")
+			.setDesc("Автоматически загружать обложку (thumbnail) вместе с видео или аудио")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.downloadThumbnail)
+					.onChange(async (value) => {
+						this.plugin.settings.downloadThumbnail = value;
+						await this.plugin.saveSettings();
+						this.display(); // Refresh to show/hide the path setting
+					})
+			);
+
+		if (this.plugin.settings.downloadThumbnail) {
+			new Setting(containerEl)
+				.setName("Папка для обложек")
+				.setDesc("Путь к папке внутри vault, куда будут сохраняться обложки")
+				.addText((text) =>
+					text
+						.setPlaceholder("thumbnails")
+						.setValue(this.plugin.settings.thumbnailPath)
+						.onChange(async (value) => {
+							this.plugin.settings.thumbnailPath = value || "thumbnails";
+							await this.plugin.saveSettings();
+						})
+				);
+
+			new Setting(containerEl)
+				.setName("Формат обложки")
+				.setDesc("В каком формате сохранять обложку (может потребоваться конвертация)")
+				.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							original: "Оригинал (обычно WebP или JPG)",
+							png: "PNG",
+							jpg: "JPG"
+						})
+						.setValue(this.plugin.settings.thumbnailFormat)
+						.onChange(async (value) => {
+							this.plugin.settings.thumbnailFormat = value as import("./types").ThumbnailFormat;
+							await this.plugin.saveSettings();
+						})
+				);
+		}
+
 		// --- Default Formats ---
 		new Setting(containerEl).setName("Форматы по умолчанию").setHeading();
 
@@ -210,23 +259,6 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 					})
 			);
 
-		// --- Note Creation ---
-		new Setting(containerEl).setName("Заметки").setHeading();
-
-		new Setting(containerEl)
-			.setName("Создавать заметку")
-			.setDesc(
-				"Автоматически создавать markdown-заметку с метаданными видео"
-			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.createNote)
-					.onChange(async (value) => {
-						this.plugin.settings.createNote = value;
-						await this.plugin.saveSettings();
-					})
-			);
-
 		// --- Advanced ---
 		new Setting(containerEl).setName("Дополнительно").setHeading();
 
@@ -242,5 +274,16 @@ export class BestDownloaderSettingTab extends PluginSettingTab {
 					})
 			);
 
+		new Setting(containerEl)
+			.setName("Параллельная склейка в плейлистах")
+			.setDesc("Скачивать следующее видео, пока предыдущее склеивается. Ускоряет загрузку, но может нагружать процессор.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.concurrentPlaylist)
+					.onChange(async (value) => {
+						this.plugin.settings.concurrentPlaylist = value;
+						await this.plugin.saveSettings();
+					})
+			);
 	}
 }
